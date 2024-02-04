@@ -1,0 +1,35 @@
+{
+  "name": "solarsim",
+  "version-semver": "0.1.0",
+  "dependencies": [
+    {
+      "name": "boost-asio",
+      "version>=": "1.80.0"
+    },
+    {
+      "name": "boost-spirit",
+      "version>=": "1.80.0"
+    },
+    {
+      "name": "fmt",
+      "version>=": "10.1.0"
+    },
+    {
+      "name": "hpx",
+      "version>=": "1.9.1"
+    }
+  ],
+  "default-features": [],
+  "features": {
+    "test": {
+      "description": "Dependencies for testing",
+      "dependencies": [
+        {
+          "name": "catch2",
+          "version>=": "3.4.0"
+        }
+      ]
+    }
+  },
+  "builtin-baseline": "1750541031c8b9e0c7793b9cf3a59b95b873ee18"
+}
