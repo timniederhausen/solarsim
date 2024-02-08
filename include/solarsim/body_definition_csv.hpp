@@ -12,28 +12,24 @@
 ///
 /// You should have received a copy of the GNU General Public License
 /// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#ifndef SOLARSIM_DETAIL_CONFIG_HPP
-#define SOLARSIM_DETAIL_CONFIG_HPP
+#ifndef SOLARSIM_BODYDEFINITIONCSV_HPP
+#define SOLARSIM_BODYDEFINITIONCSV_HPP
 
-#define SOLARSIM_NS solarsim::v1
-#define SOLARSIM_NS_BEGIN namespace solarsim { inline namespace v1 {
-#define SOLARSIM_NS_END } }
+#include "solarsim/detail/config.hpp"
 
-#if defined(_MSC_VER) || defined(__BORLANDC__) || defined(__CODEGEARC__)
-# if defined(SOLARSIM_DYN_LINK)
-#  if defined(SOLARSIM_SOURCE)
-#   define SOLARSIM_DECL __declspec(dllexport)
-#  else
-#   define SOLARSIM_DECL __declspec(dllimport)
-#  endif
-# endif
+#if SOLARSIM_HAS_PRAGMA_ONCE
+# pragma once
 #endif
 
-#if !defined(SOLARSIM_DECL)
-# define SOLARSIM_DECL
-#endif
+#include "solarsim/body_definition.hpp"
 
-// TODO: every supported compiler has that?
-#define SOLARSIM_HAS_PRAGMA_ONCE 1
+#include <vector>
+#include <string_view>
+
+SOLARSIM_NS_BEGIN
+
+std::vector<body_definition> load_from_csv_file(const char* filename);
+
+SOLARSIM_NS_END
 
 #endif

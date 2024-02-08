@@ -1,6 +1,7 @@
 add_library(
     SolarSim_Library
-    core/log.cpp
+    log.cpp
+    body_definition_csv.cpp
 )
 add_library(SolarSim::SolarSim ALIAS SolarSim_Library)
 

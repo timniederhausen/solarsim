@@ -17,7 +17,7 @@ include(Catch)
 
 # ---- Tests ----
 
-add_executable(SolarSim_test src/io/csv_import.cpp)
+add_executable(SolarSim_test src/body_definition_csv.cpp)
 target_link_libraries(
     SolarSim_test PRIVATE
     SolarSim::SolarSim

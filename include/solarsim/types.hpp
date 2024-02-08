@@ -12,28 +12,27 @@
 ///
 /// You should have received a copy of the GNU General Public License
 /// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#ifndef SOLARSIM_DETAIL_CONFIG_HPP
-#define SOLARSIM_DETAIL_CONFIG_HPP
+#ifndef SOLARSIM_TYPES_HPP
+#define SOLARSIM_TYPES_HPP
 
-#define SOLARSIM_NS solarsim::v1
-#define SOLARSIM_NS_BEGIN namespace solarsim { inline namespace v1 {
-#define SOLARSIM_NS_END } }
+#include "solarsim/detail/config.hpp"
 
-#if defined(_MSC_VER) || defined(__BORLANDC__) || defined(__CODEGEARC__)
-# if defined(SOLARSIM_DYN_LINK)
-#  if defined(SOLARSIM_SOURCE)
-#   define SOLARSIM_DECL __declspec(dllexport)
-#  else
-#   define SOLARSIM_DECL __declspec(dllimport)
-#  endif
-# endif
+#if SOLARSIM_HAS_PRAGMA_ONCE
+# pragma once
 #endif
 
-#if !defined(SOLARSIM_DECL)
-# define SOLARSIM_DECL
-#endif
+#include <string>
 
-// TODO: every supported compiler has that?
-#define SOLARSIM_HAS_PRAGMA_ONCE 1
+SOLARSIM_NS_BEGIN
+
+// Floating point values - can switch between 32bits (float) and 64bits (double)
+using real = double;
+
+// TODO: get these from a math library (w. proper alignment + SIMD support)
+
+// A triple is generally used to represent a column point or vector
+using triple = real[3];
+
+SOLARSIM_NS_END
 
 #endif
