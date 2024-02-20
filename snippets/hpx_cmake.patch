@@ -1,0 +1,13 @@
+diff --git a/cmake/HPX_SetupBoost.cmake b/cmake/HPX_SetupBoost.cmake
+index 873d7724a..d6e56eac2 100644
+--- a/cmake/HPX_SetupBoost.cmake
++++ b/cmake/HPX_SetupBoost.cmake
+@@ -32,8 +32,6 @@ if(NOT TARGET hpx_dependencies_boost)
+       CACHE INTERNAL "1.71" FORCE
+   )
+ 
+-  set(Boost_NO_BOOST_CMAKE ON) # disable the search for boost-cmake
+-
+   # Find the headers and get the version
+   find_package(Boost ${Boost_MINIMUM_VERSION} REQUIRED)
+   if(NOT Boost_VERSION_STRING)
