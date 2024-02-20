@@ -41,22 +41,24 @@ struct bodydef_csv_grammar : qi::grammar<Iterator, body_definition()>
 
     // TODO: I'm sure there's a way to build this from the adapted struct
     // might no be worth implementing though :(
+    // clang-format off
     start  = column >> ColSep >> column >> ColSep >> column >> ColSep >>
              double_ >> ColSep >> // mass
              double_ >> ColSep >> double_ >> ColSep >> double_ >> ColSep >> // position
              double_ >> ColSep >> double_ >> ColSep >> double_; // velocity
     column = quoted | *~char_(ColSep);
     quoted = '"' >> *("\"\"" | ~char_('"')) >> '"';
+    // clang-format on
 
     BOOST_SPIRIT_DEBUG_NODES((start)(column)(quoted));
 
 #ifdef BOOST_SPIRIT_DEBUG
     // TODO: add that to the exception?
     qi::on_error<qi::fail>(start, px::ref(std::cerr)
-      << "Error! Expecting " << _4 // what failed?
-      << " here: \"" << px::construct<std::string_view>(_3, _2) // iterators to error-pos, end
-      << "\"\n"
-    );
+                                      << "Error! Expecting " << _4 // what failed?
+                                      << " here: \""
+                                      << px::construct<std::string_view>(_3, _2) // iterators to error-pos, end
+                                      << "\"\n");
 #endif
   }
 
@@ -66,11 +68,11 @@ private:
   qi::rule<Iterator, std::string()> quoted;
 };
 
-template <typename Parser, typename ... Args>
-void parse_or_die(std::string_view input, const Parser& p, Args&& ... args)
+template <typename Parser, typename... Args>
+void parse_or_die(std::string_view input, const Parser& p, Args&&... args)
 {
   std::string_view::const_iterator begin = input.begin(), end = input.end();
-  bool ok = qi::parse(begin, end, p, std::forward<Args>(args) ...);
+  bool ok = qi::parse(begin, end, p, std::forward<Args>(args)...);
   if (!ok || begin != end)
     throw std::runtime_error(fmt::format("Parse error: remaining {}", std::string_view(begin, end)));
 }
@@ -83,7 +85,7 @@ std::vector<body_definition> load_from_csv_file(std::istream& input)
   // TODO: validate header
 
   std::vector<body_definition> bodies;
-  for (bodydef_csv_grammar<> grammar; std::getline(input, line); ) {
+  for (bodydef_csv_grammar<> grammar; std::getline(input, line);) {
     body_definition body;
     parse_or_die(line, grammar, body);
     bodies.push_back(std::move(body));

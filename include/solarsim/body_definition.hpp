@@ -18,7 +18,7 @@
 #include "solarsim/detail/config.hpp"
 
 #if SOLARSIM_HAS_PRAGMA_ONCE
-# pragma once
+#  pragma once
 #endif
 
 #include "solarsim/types.hpp"

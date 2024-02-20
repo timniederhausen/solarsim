@@ -19,9 +19,8 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    # TODO: disabled until we have a better config!
-    #- name: Lint
-    #  run: cmake -D FORMAT_COMMAND=clang-format-14 -P cmake/lint.cmake
+    - name: Lint
+      run: cmake -D FORMAT_COMMAND=clang-format-14 -P cmake/lint.cmake
 
   coverage:
     needs: [lint]

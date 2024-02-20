@@ -15,22 +15,24 @@
 #ifndef SOLARSIM_DETAIL_CONFIG_HPP
 #define SOLARSIM_DETAIL_CONFIG_HPP
 
+// clang-format off
 #define SOLARSIM_NS solarsim::v1
 #define SOLARSIM_NS_BEGIN namespace solarsim { inline namespace v1 {
 #define SOLARSIM_NS_END } }
+// clang-format on
 
 #if defined(_MSC_VER) || defined(__BORLANDC__) || defined(__CODEGEARC__)
-# if defined(SOLARSIM_DYN_LINK)
-#  if defined(SOLARSIM_SOURCE)
-#   define SOLARSIM_DECL __declspec(dllexport)
-#  else
-#   define SOLARSIM_DECL __declspec(dllimport)
+#  if defined(SOLARSIM_DYN_LINK)
+#    if defined(SOLARSIM_SOURCE)
+#      define SOLARSIM_DECL __declspec(dllexport)
+#    else
+#      define SOLARSIM_DECL __declspec(dllimport)
+#    endif
 #  endif
-# endif
 #endif
 
 #if !defined(SOLARSIM_DECL)
-# define SOLARSIM_DECL
+#  define SOLARSIM_DECL
 #endif
 
 // TODO: every supported compiler has that?

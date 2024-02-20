@@ -18,7 +18,7 @@
 #include "solarsim/detail/config.hpp"
 
 #if SOLARSIM_HAS_PRAGMA_ONCE
-# pragma once
+#  pragma once
 #endif
 
 #include <fmt/format.h>
@@ -35,9 +35,8 @@ enum class log_severity
   disabled
 };
 
-using log_callback = void (*) (log_severity severity,
-                               const char* filename, int line,
-                               std::string_view format, fmt::format_args args);
+using log_callback = void (*)(log_severity severity, const char* filename, int line, std::string_view format,
+                              fmt::format_args args);
 
 void set_min_severity(log_severity severity) noexcept;
 void set_log_callback(log_callback cb) noexcept;
@@ -53,15 +52,19 @@ void log(log_severity severity, const char* filename, int line, fmt::format_stri
 }
 
 #if !defined(_DEBUG) && !defined(SOLARSIM_LOG_SOURCE_LOCATION)
-# define SOLARSIM_LOG(severity, format, ...) do { \
-  if (SOLARSIM_NS::is_severity_enabled(SOLARSIM_NS::log_severity:: severity)) { \
-    SOLARSIM_NS::log(SOLARSIM_NS::log_severity:: severity, {}, 0, format, ##__VA_ARGS__); \
-  } } while (false)
+#  define SOLARSIM_LOG(severity, format, ...)                                                \
+    do {                                                                                     \
+      if (SOLARSIM_NS::is_severity_enabled(SOLARSIM_NS::log_severity::severity)) {           \
+        SOLARSIM_NS::log(SOLARSIM_NS::log_severity::severity, {}, 0, format, ##__VA_ARGS__); \
+      }                                                                                      \
+    } while (false)
 #else
-# define SOLARSIM_LOG(severity, format, ...) do { \
-  if (SOLARSIM_NS::is_severity_enabled(SOLARSIM_NS::log_severity:: severity)) { \
-    SOLARSIM_NS::log(SOLARSIM_NS::log_severity:: severity, __FILE__, __LINE__, format, ##__VA_ARGS__); \
-  } } while (false)
+#  define SOLARSIM_LOG(severity, format, ...)                                                             \
+    do {                                                                                                  \
+      if (SOLARSIM_NS::is_severity_enabled(SOLARSIM_NS::log_severity::severity)) {                        \
+        SOLARSIM_NS::log(SOLARSIM_NS::log_severity::severity, __FILE__, __LINE__, format, ##__VA_ARGS__); \
+      }                                                                                                   \
+    } while (false)
 #endif
 
 #define SOLARSIM_LOG_DEBUG(format, ...) SOLARSIM_LOG(debug, format, ##__VA_ARGS__)
@@ -71,17 +74,17 @@ void log(log_severity severity, const char* filename, int line, fmt::format_stri
 #define SOLARSIM_LOG_ERROR(format, ...) SOLARSIM_LOG(error, format, ##__VA_ARGS__)
 
 #if defined(_DEBUG) || defined(SOLARSIM_ENABLE_DLOG)
-# define SOLARSIM_DLOG_DEBUG(format, ...) SOLARSIM_LOG(debug, format, ##__VA_ARGS__)
-# define SOLARSIM_DLOG_VERBOSE(format, ...) SOLARSIM_LOG(verbose, format, ##__VA_ARGS__)
-# define SOLARSIM_DLOG_INFO(format, ...) SOLARSIM_LOG(info, format, ##__VA_ARGS__)
-# define SOLARSIM_DLOG_WARNING(format, ...) SOLARSIM_LOG(warning, format, ##__VA_ARGS__)
-# define SOLARSIM_DLOG_ERROR(format, ...) SOLARSIM_LOG(error, format, ##__VA_ARGS__)
+#  define SOLARSIM_DLOG_DEBUG(format, ...) SOLARSIM_LOG(debug, format, ##__VA_ARGS__)
+#  define SOLARSIM_DLOG_VERBOSE(format, ...) SOLARSIM_LOG(verbose, format, ##__VA_ARGS__)
+#  define SOLARSIM_DLOG_INFO(format, ...) SOLARSIM_LOG(info, format, ##__VA_ARGS__)
+#  define SOLARSIM_DLOG_WARNING(format, ...) SOLARSIM_LOG(warning, format, ##__VA_ARGS__)
+#  define SOLARSIM_DLOG_ERROR(format, ...) SOLARSIM_LOG(error, format, ##__VA_ARGS__)
 #else
-# define SOLARSIM_DLOG_DEBUG(format, ...) (void)0
-# define SOLARSIM_DLOG_VERBOSE(format, ...) (void)0
-# define SOLARSIM_DLOG_INFO(format, ...) (void)0
-# define SOLARSIM_DLOG_WARNING(format, ...) (void)0
-# define SOLARSIM_DLOG_ERROR(format, ...) (void)0
+#  define SOLARSIM_DLOG_DEBUG(format, ...) (void)0
+#  define SOLARSIM_DLOG_VERBOSE(format, ...) (void)0
+#  define SOLARSIM_DLOG_INFO(format, ...) (void)0
+#  define SOLARSIM_DLOG_WARNING(format, ...) (void)0
+#  define SOLARSIM_DLOG_ERROR(format, ...) (void)0
 #endif
 
 SOLARSIM_NS_END

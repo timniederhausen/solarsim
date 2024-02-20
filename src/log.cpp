@@ -21,16 +21,22 @@ namespace {
 static log_severity min_severity = log_severity::info;
 static log_callback log_cb;
 
-}
+} // namespace
 
 void set_min_severity(log_severity severity) noexcept
-{ min_severity = severity; }
+{
+  min_severity = severity;
+}
 
 void set_log_callback(log_callback cb) noexcept
-{ log_cb = cb; }
+{
+  log_cb = cb;
+}
 
 bool is_severity_enabled(log_severity severity) noexcept
-{ return severity >= min_severity; }
+{
+  return severity >= min_severity;
+}
 
 void vlog(log_severity severity, const char* filename, int line, fmt::string_view format, fmt::format_args args)
 {
