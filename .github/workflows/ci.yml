@@ -20,7 +20,10 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Lint
-      run: cmake -D FORMAT_COMMAND=clang-format-14 -P cmake/lint.cmake
+      run: |
+        wget -qO clang-format-17 https://github.com/muttleyxd/clang-tools-static-binaries/releases/download/master-f7f02c1d/clang-format-17_linux-amd64
+        chmod +x clang-format-17
+        cmake -D FORMAT_COMMAND=$(pwd)/clang-format-17 -P cmake/lint.cmake
 
   coverage:
     needs: [lint]
@@ -68,7 +71,7 @@ jobs:
 
     runs-on: ubuntu-22.04
 
-    env: { CXX: clang++-14 }
+    env: { CXX: clang++-15 }
 
     steps:
     - uses: actions/checkout@v4
@@ -114,11 +117,11 @@ jobs:
     - name: Install static analyzers
       if: matrix.os == 'ubuntu-22.04'
       run: >-
-        sudo apt-get install clang-tidy-14 cppcheck -y -q
+        sudo apt-get install clang-tidy-15 cppcheck -y -q
 
         sudo update-alternatives --install
         /usr/bin/clang-tidy clang-tidy
-        /usr/bin/clang-tidy-14 140
+        /usr/bin/clang-tidy-15 150
 
     - name: Install vcpkg
       uses: friendlyanon/setup-vcpkg@v1
