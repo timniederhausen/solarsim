@@ -16,7 +16,9 @@
     },
     {
       "name": "hpx",
-      "version>=": "1.9.1"
+      "version>=": "1.9.1",
+      "default-features": false,
+      "features": ["bzip2", "snappy", "zlib"]
     }
   ],
   "default-features": [],
