@@ -2,7 +2,15 @@ add_library(
     SolarSim_Library
     log.cpp
     body_definition_csv.cpp
+    math.cpp
+    naive_simulator_sync.cpp
 )
+
+# Add them as PRIVATE sources here so they show up in project files
+# Can't use PUBLIC etc., see: https://stackoverflow.com/a/62465051
+file(GLOB_RECURSE header_files CONFIGURE_DEPENDS ../include/solarsim/*.hpp)
+target_sources(SolarSim_Library PRIVATE ${header_files})
+
 add_library(SolarSim::SolarSim ALIAS SolarSim_Library)
 
 target_compile_definitions(SolarSim_Library PRIVATE SOLARSIM_SOURCE)
@@ -32,4 +40,8 @@ find_package(fmt REQUIRED)
 target_link_libraries(SolarSim_Library PRIVATE fmt::fmt)
 
 find_package(Boost REQUIRED COMPONENTS system)
-target_link_libraries(SolarSim_Library PRIVATE Boost::boost Boost::system)
+target_link_libraries(SolarSim_Library PUBLIC Boost::boost Boost::system)
+
+# TODO: seperate library for HPX executor?
+find_package(HPX REQUIRED)
+target_link_libraries(SolarSim_Library PUBLIC HPX::hpx)

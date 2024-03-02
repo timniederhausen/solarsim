@@ -26,13 +26,29 @@
 SOLARSIM_NS_BEGIN
 
 // Floating point values - can switch between 32bits (float) and 64bits (double)
+// Default to double as our test data needs this precision
 using real = double;
 
 // TODO: get these from a math library (w. proper alignment + SIMD support)
+// We need one that supports double precision though (so DirectXMath etc. are out for now)
 
 // A triple is generally used to represent a column point or vector
-using triple = real[3];
+struct triple
+{
+  // subscription operators
+  [[nodiscard]] constexpr real& operator[](std::size_t i) noexcept { return v[i]; }
+  [[nodiscard]] constexpr const real& operator[](std::size_t i) const noexcept { return v[i]; }
+
+  // data() + size() for span<> etc. support
+  [[nodiscard]] constexpr std::size_t size() const noexcept { return 3; }
+  [[nodiscard]] constexpr real* data() noexcept { return v; }
+  [[nodiscard]] constexpr const real* data() const noexcept { return v; }
+
+  real v[3];
+};
 
 SOLARSIM_NS_END
+
+#include "solarsim/types_inlines.hpp"
 
 #endif
