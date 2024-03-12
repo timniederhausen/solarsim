@@ -123,6 +123,10 @@ jobs:
         /usr/bin/clang-tidy clang-tidy
         /usr/bin/clang-tidy-15 150
 
+    - name: Install autoconf
+      if: matrix.os == 'macos-12'
+      run: brew install autoconf
+
     - name: Install vcpkg
       uses: friendlyanon/setup-vcpkg@v1
       with: { committish: "${{ env.VCPKG_COMMIT }}" }
