@@ -15,13 +15,12 @@
 #include "solarsim/body_definition_csv.hpp"
 
 // Enable optional spirit debugging
-#define BOOST_SPIRIT_DEBUG
+// #define BOOST_SPIRIT_DEBUG
 #include <boost/spirit/include/qi.hpp>
-#include <boost/spirit/include/phoenix.hpp>
 
 #include <fmt/format.h>
+#include <fmt/os.h>
 
-#include <iostream>
 #include <fstream>
 
 SOLARSIM_NS_BEGIN
@@ -29,6 +28,7 @@ SOLARSIM_NS_BEGIN
 namespace px = boost::phoenix;
 namespace qi = boost::spirit::qi;
 
+// A possibly more-complex-than-needed CSV parser for our celestial bodies
 // see: https://stackoverflow.com/a/18366335
 // see: https://stackoverflow.com/a/7462539
 template <typename Iterator = std::string_view::const_iterator, char ColSep = ','>
@@ -44,22 +44,13 @@ struct bodydef_csv_grammar : qi::grammar<Iterator, body_definition()>
     // clang-format off
     start  = column >> ColSep >> column >> ColSep >> column >> ColSep >>
              double_ >> ColSep >> // mass
-             double_ >> ColSep >> double_ >> ColSep >> double_ >> ColSep >> // position
-             double_ >> ColSep >> double_ >> ColSep >> double_; // velocity
+             double_ >> ColSep >> double_ >> ColSep >> double_ >> ColSep >> // position (x y z)
+             double_ >> ColSep >> double_ >> ColSep >> double_; // velocity (x y z)
     column = quoted | *~char_(ColSep);
     quoted = '"' >> *("\"\"" | ~char_('"')) >> '"';
     // clang-format on
 
-    BOOST_SPIRIT_DEBUG_NODES((start)(column)(quoted));
-
-#ifdef BOOST_SPIRIT_DEBUG
-    // TODO: add that to the exception?
-    qi::on_error<qi::fail>(start, px::ref(std::cerr)
-                                      << "Error! Expecting " << _4 // what failed?
-                                      << " here: \""
-                                      << px::construct<std::string_view>(_3, _2) // iterators to error-pos, end
-                                      << "\"\n");
-#endif
+    BOOST_SPIRIT_DEBUG_NODES((start)(column)(quoted))
   }
 
 private:
@@ -100,6 +91,17 @@ std::vector<body_definition> load_from_csv_file(const char* filename)
     throw std::runtime_error(fmt::format("failed to read {}", filename));
 
   return load_from_csv_file(istrm);
+}
+
+void save_to_csv_file(std::span<const body_definition> bodies, const char* filename)
+{
+  auto out = fmt::output_file(filename);
+  out.print("id,name,class,mass,pos_x,pos_y,pos_z,vel_x,vel_y,vel_z\n");
+  for (const auto& body : bodies) {
+    // This doesn't look very maintainable. Maybe generate it with crapi?
+    out.print("{},{},{},{},{},{},{},{},{},{}\n", body.id, body.name, body.type, body.mass, body.position[0],
+              body.position[1], body.position[2], body.velocity[0], body.velocity[1], body.velocity[2]);
+  }
 }
 
 SOLARSIM_NS_END

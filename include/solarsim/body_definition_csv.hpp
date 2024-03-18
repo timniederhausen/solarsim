@@ -24,11 +24,12 @@
 #include "solarsim/body_definition.hpp"
 
 #include <vector>
-#include <string_view>
+#include <span>
 
 SOLARSIM_NS_BEGIN
 
 std::vector<body_definition> load_from_csv_file(const char* filename);
+void save_to_csv_file(std::span<const body_definition> bodies, const char* filename);
 
 SOLARSIM_NS_END
 
