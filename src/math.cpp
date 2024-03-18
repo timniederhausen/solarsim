@@ -19,28 +19,7 @@
 
 SOLARSIM_NS_BEGIN
 
-// In general, the formula is:
-//
-//   a_i = \sum_{i \ne j} G * m_j * (x_j - x_i) / pow(norm(x_j - x_i) + softening_factor, 3)
-//
-// Below function calculates it for a single (i x j) pair
-// Note: |adjusted_mass| is already adjusted by the system's gravity!
-void calculate_acceleration(const triple& xi, const triple& xj, real adjusted_mass, real softening,
-                            triple& acceleration)
-{
-  triple displacement;
-  displacement[0] = xj[0] - xi[0];
-  displacement[1] = xj[1] - xi[1];
-  displacement[2] = xj[2] - xi[2];
-
-  // const real divisor  = std::pow(squared_length(displacement) + softening * softening, 3.0 / 2.0);
-  const real divisor = std::pow(length(displacement) + softening, 3.0);
-
-  acceleration[0] += adjusted_mass * displacement[0] / divisor;
-  acceleration[1] += adjusted_mass * displacement[1] / divisor;
-  acceleration[2] += adjusted_mass * displacement[2] / divisor;
-}
-
+#if defined(_DEBUG)
 void debug_validate_acceleration(const triple& acceleration)
 {
   // Make sure we don't end up with NaNs everywhere!
@@ -48,6 +27,53 @@ void debug_validate_acceleration(const triple& acceleration)
   assert(!std::isnan(acceleration[1]));
   assert(!std::isnan(acceleration[2]));
   // TODO: further validation?
+}
+#else
+constexpr void debug_validate_acceleration(const triple& acceleration)
+{
+  // no op
+}
+#endif
+
+// In general, the formula is:
+//
+//   a_i = \sum_{i \ne j} G * m_j * (x_j - x_i) / pow(norm(x_j - x_i) + softening_factor, 3)
+//
+// Below function calculates it for a single object
+// Note: |adjusted_mass| is already adjusted by the system's gravity!
+void calculate_acceleration(const triple& x_i, const triple& x_j, real adjusted_mass, real softening,
+                            triple& acceleration)
+{
+  const triple displacement = x_j - x_i;
+
+  const real distance = length(displacement) + softening;
+  const real divisor  = distance * distance * distance;
+
+  acceleration[0] += adjusted_mass * displacement[0] / divisor;
+  acceleration[1] += adjusted_mass * displacement[1] / divisor;
+  acceleration[2] += adjusted_mass * displacement[2] / divisor;
+  debug_validate_acceleration(acceleration);
+}
+
+// calculate acceleration pairwise for (i, j) and (j, i)
+// This allows us to cut down on the more expensive calculations (e.g. sqrt)
+void calculate_acceleration(const triple& x_i, const triple& x_j, real adjusted_mass_i, real adjusted_mass_j,
+                            real softening, triple& acceleration_i, triple& acceleration_j)
+{
+  const triple displacement = x_j - x_i;
+
+  const real distance = length(displacement) + softening;
+  const real divisor  = distance * distance * distance;
+
+  acceleration_i[0] += adjusted_mass_j * displacement[0] / divisor;
+  acceleration_i[1] += adjusted_mass_j * displacement[1] / divisor;
+  acceleration_i[2] += adjusted_mass_j * displacement[2] / divisor;
+  debug_validate_acceleration(acceleration_i);
+
+  acceleration_j[0] -= adjusted_mass_i * displacement[0] / divisor;
+  acceleration_j[1] -= adjusted_mass_i * displacement[1] / divisor;
+  acceleration_j[2] -= adjusted_mass_i * displacement[2] / divisor;
+  debug_validate_acceleration(acceleration_j);
 }
 
 // Velocity verlet

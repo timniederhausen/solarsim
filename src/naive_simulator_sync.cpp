@@ -20,7 +20,8 @@
 SOLARSIM_NS_BEGIN
 
 // TODO: Add a template argument for this?
-inline constexpr bool use_shifted_verlet = false;
+inline constexpr bool use_shifted_verlet                 = true;
+inline constexpr bool use_fused_acceleration_calculation = true;
 
 naive_simulator_sync::naive_simulator_sync(std::span<body_definition> bodies, real softening_factor)
   : bodies_(bodies)
@@ -55,17 +56,25 @@ void naive_simulator_sync::tick(real dT)
 
 void naive_simulator_sync::update_acceleration()
 {
+  std::fill(acceleration_.begin(), acceleration_.end(), triple{});
+
   for (std::size_t i = 0, n = bodies_.size(); i != n; ++i) {
     // Obtain a_i by summing all pairwise acceleration values (i \ne j)
-    triple acceleration_sum = {};
-    for (std::size_t j = 0; j != n; ++j) {
-      if (i != j) {
-        calculate_acceleration(bodies_[i].position, bodies_[j].position, bodies_[j].mass, softening_factor_,
-                               acceleration_sum);
+    if constexpr (use_fused_acceleration_calculation) {
+      // do it for (i, j) & (j, i) at the same time
+      for (std::size_t j = i + 1; j < n; ++j) {
+        calculate_acceleration(bodies_[i].position, bodies_[j].position, bodies_[i].mass, bodies_[j].mass,
+                               softening_factor_, acceleration_[i], acceleration_[j]);
+      }
+    } else {
+      // very naive version, calculate it per body
+      for (std::size_t j = 0; j != n; ++j) {
+        if (i != j) {
+          calculate_acceleration(bodies_[i].position, bodies_[j].position, bodies_[j].mass, softening_factor_,
+                                 acceleration_[i]);
+        }
       }
     }
-    debug_validate_acceleration(acceleration_sum);
-    acceleration_[i] = acceleration_sum;
   }
 }
 

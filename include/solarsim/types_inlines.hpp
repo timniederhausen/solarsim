@@ -23,6 +23,8 @@
 
 SOLARSIM_NS_BEGIN
 
+// TODO: add +=, -=, etc.
+
 constexpr triple operator*(const triple& lhs, real rhs)
 {
   return triple{lhs.v[0] * rhs, lhs.v[1] * rhs, lhs.v[2] * rhs};
@@ -49,6 +51,16 @@ constexpr triple operator/(const triple& lhs, const triple& rhs)
 {
   return triple{lhs.v[0] / rhs.v[0], lhs.v[1] / rhs.v[1], lhs.v[2] / rhs.v[2]};
 }
+
+constexpr triple operator+(const triple& lhs, const triple& rhs)
+{
+  return triple{lhs.v[0] + rhs.v[0], lhs.v[1] + rhs.v[1], lhs.v[2] + rhs.v[2]};
+}
+constexpr triple operator-(const triple& lhs, const triple& rhs)
+{
+  return triple{lhs.v[0] - rhs.v[0], lhs.v[1] - rhs.v[1], lhs.v[2] - rhs.v[2]};
+}
+
 constexpr triple operator-(const triple& lhs)
 {
   return triple{-lhs.v[0], -lhs.v[1], -lhs.v[2]};

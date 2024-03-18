@@ -61,9 +61,10 @@ constexpr real squared_length(const triple& v)
   return std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
 }
 
-void calculate_acceleration(const triple& xi, const triple& xj, real adjusted_mass, real softening,
+void calculate_acceleration(const triple& x_i, const triple& x_j, real adjusted_mass, real softening,
                             triple& acceleration);
-void debug_validate_acceleration(const triple& acceleration);
+void calculate_acceleration(const triple& x_i, const triple& x_j, real adjusted_mass_i, real adjusted_mass_j,
+                            real softening, triple& acceleration_i, triple& acceleration_j);
 
 void integrate_velocity_verlet_phase1(triple& position, triple& velocity, const triple& acceleration, real dT);
 void integrate_velocity_verlet_phase2(triple& velocity, const triple& acceleration, real dT);
