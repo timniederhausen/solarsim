@@ -14,6 +14,7 @@ include(cmake/project-is-top-level.cmake)
 include(cmake/variables.cmake)
 
 add_subdirectory(src)
+add_subdirectory(tools)
 
 if(NOT CMAKE_SKIP_INSTALL_RULES)
   include(cmake/install-rules.cmake)
