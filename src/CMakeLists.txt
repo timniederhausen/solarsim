@@ -1,5 +1,6 @@
 add_library(
     SolarSim_Library
+    barnes_hut_octree.cpp
     log.cpp
     body_definition_csv.cpp
     math.cpp
