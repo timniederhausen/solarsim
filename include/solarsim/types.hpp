@@ -47,6 +47,15 @@ struct triple
   real v[3];
 };
 
+// AABBs are very basic axis-aligned collision primitives
+struct axis_aligned_bounding_box
+{
+  static constexpr axis_aligned_bounding_box infinity();
+
+  triple min;
+  triple max;
+};
+
 SOLARSIM_NS_END
 
 #include "solarsim/types_inlines.hpp"

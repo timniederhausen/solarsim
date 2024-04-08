@@ -21,6 +21,8 @@
 #  pragma once
 #endif
 
+#include <limits>
+
 SOLARSIM_NS_BEGIN
 
 // TODO: add +=, -=, etc.
@@ -64,6 +66,18 @@ constexpr triple operator-(const triple& lhs, const triple& rhs)
 constexpr triple operator-(const triple& lhs)
 {
   return triple{-lhs.v[0], -lhs.v[1], -lhs.v[2]};
+}
+
+constexpr axis_aligned_bounding_box axis_aligned_bounding_box::infinity()
+{
+  // min() gives us smallest *normalized* value
+  // see: https://en.cppreference.com/w/cpp/types/numeric_limits/lowest
+  constexpr real min = std::numeric_limits<real>::lowest();
+  constexpr real max = std::numeric_limits<real>::max();
+  return {
+      {min, min, min},
+      {max, max, max},
+  };
 }
 
 SOLARSIM_NS_END
