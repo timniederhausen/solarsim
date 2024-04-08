@@ -102,7 +102,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [macos-12, ubuntu-22.04, windows-2022]
+        os: [ubuntu-22.04, windows-2022]
 
         type: [shared, static]
 
@@ -122,10 +122,6 @@ jobs:
         sudo update-alternatives --install
         /usr/bin/clang-tidy clang-tidy
         /usr/bin/clang-tidy-15 150
-
-    - name: Install autoconf
-      if: matrix.os == 'macos-12'
-      run: brew install autoconf
 
     - name: Install vcpkg
       uses: friendlyanon/setup-vcpkg@v1
