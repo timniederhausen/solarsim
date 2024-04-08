@@ -26,7 +26,7 @@ void debug_validate_acceleration(const triple& acceleration)
   assert(!std::isnan(acceleration[0]));
   assert(!std::isnan(acceleration[1]));
   assert(!std::isnan(acceleration[2]));
-  // TODO: further validation?
+  // TODO: further validation? max/min values?
 }
 #else
 constexpr void debug_validate_acceleration(const triple& acceleration)
@@ -40,8 +40,7 @@ constexpr void debug_validate_acceleration(const triple& acceleration)
 //   a_i = \sum_{i \ne j} G * m_j * (x_j - x_i) / pow(norm(x_j - x_i) + softening_factor, 3)
 //
 // Below function calculates it for a single object
-// Note: |adjusted_mass| is already adjusted by the system's gravity!
-void calculate_acceleration(const triple& x_i, const triple& x_j, real adjusted_mass, real softening,
+void calculate_acceleration(const triple& x_i, const triple& x_j, real unadjusted_mass, real softening,
                             triple& acceleration)
 {
   const triple displacement = x_j - x_i;
@@ -49,15 +48,17 @@ void calculate_acceleration(const triple& x_i, const triple& x_j, real adjusted_
   const real distance = length(displacement) + softening;
   const real divisor  = distance * distance * distance;
 
-  acceleration[0] += adjusted_mass * displacement[0] / divisor;
-  acceleration[1] += adjusted_mass * displacement[1] / divisor;
-  acceleration[2] += adjusted_mass * displacement[2] / divisor;
+  unadjusted_mass *= gravitational_constant;
+
+  acceleration[0] += unadjusted_mass * displacement[0] / divisor;
+  acceleration[1] += unadjusted_mass * displacement[1] / divisor;
+  acceleration[2] += unadjusted_mass * displacement[2] / divisor;
   debug_validate_acceleration(acceleration);
 }
 
 // calculate acceleration pairwise for (i, j) and (j, i)
 // This allows us to cut down on the more expensive calculations (e.g. sqrt)
-void calculate_acceleration(const triple& x_i, const triple& x_j, real adjusted_mass_i, real adjusted_mass_j,
+void calculate_acceleration(const triple& x_i, const triple& x_j, real unadjusted_mass_i, real unadjusted_mass_j,
                             real softening, triple& acceleration_i, triple& acceleration_j)
 {
   const triple displacement = x_j - x_i;
@@ -65,14 +66,17 @@ void calculate_acceleration(const triple& x_i, const triple& x_j, real adjusted_
   const real distance = length(displacement) + softening;
   const real divisor  = distance * distance * distance;
 
-  acceleration_i[0] += adjusted_mass_j * displacement[0] / divisor;
-  acceleration_i[1] += adjusted_mass_j * displacement[1] / divisor;
-  acceleration_i[2] += adjusted_mass_j * displacement[2] / divisor;
+  unadjusted_mass_j *= gravitational_constant;
+  unadjusted_mass_i *= gravitational_constant;
+
+  acceleration_i[0] += unadjusted_mass_j * displacement[0] / divisor;
+  acceleration_i[1] += unadjusted_mass_j * displacement[1] / divisor;
+  acceleration_i[2] += unadjusted_mass_j * displacement[2] / divisor;
   debug_validate_acceleration(acceleration_i);
 
-  acceleration_j[0] -= adjusted_mass_i * displacement[0] / divisor;
-  acceleration_j[1] -= adjusted_mass_i * displacement[1] / divisor;
-  acceleration_j[2] -= adjusted_mass_i * displacement[2] / divisor;
+  acceleration_j[0] -= unadjusted_mass_i * displacement[0] / divisor;
+  acceleration_j[1] -= unadjusted_mass_i * displacement[1] / divisor;
+  acceleration_j[2] -= unadjusted_mass_i * displacement[2] / divisor;
   debug_validate_acceleration(acceleration_j);
 }
 
@@ -137,6 +141,18 @@ void integrate_leapfrog_phase2(triple& position, triple& velocity, const triple&
   position[0] += velocity[0] * 0.5 * dT;
   position[1] += velocity[1] * 0.5 * dT;
   position[2] += velocity[2] * 0.5 * dT;
+}
+
+// Energy calculation
+
+real calculate_kinetic_energy(real unadjusted_mass, const triple& velocity)
+{
+  return 0.5 * unadjusted_mass * squared_length(velocity);
+}
+
+real calculate_potential_energy(real unadjusted_mass_i, real unadjusted_mass_j, const triple& x_i, const triple& x_j)
+{
+  return gravitational_constant * unadjusted_mass_i * unadjusted_mass_j / length(x_j - x_i);
 }
 
 SOLARSIM_NS_END

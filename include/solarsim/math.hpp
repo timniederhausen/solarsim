@@ -40,7 +40,7 @@ inline constexpr real year_in_seconds  = 365.25 * 86400;
 //  * km/s for velocities
 //  * Solar mass (Mo) for entity masses
 //
-// TODO: Commonly, parsec (pc) is used for distances, however that would complicate the
+// Commonly, parsec (pc) is used for distances, however that would complicate the
 // position update code.
 
 // Unit is m \times (m / s)^2 \times kg ^ (-1)
@@ -61,9 +61,9 @@ constexpr real squared_length(const triple& v)
   return std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
 }
 
-void calculate_acceleration(const triple& x_i, const triple& x_j, real adjusted_mass, real softening,
+void calculate_acceleration(const triple& x_i, const triple& x_j, real unadjusted_mass, real softening,
                             triple& acceleration);
-void calculate_acceleration(const triple& x_i, const triple& x_j, real adjusted_mass_i, real adjusted_mass_j,
+void calculate_acceleration(const triple& x_i, const triple& x_j, real unadjusted_mass_i, real unadjusted_mass_j,
                             real softening, triple& acceleration_i, triple& acceleration_j);
 
 void integrate_velocity_verlet_phase1(triple& position, triple& velocity, const triple& acceleration, real dT);
@@ -71,6 +71,10 @@ void integrate_velocity_verlet_phase2(triple& velocity, const triple& accelerati
 
 void integrate_leapfrog_phase1(triple& position, const triple& velocity, real dT);
 void integrate_leapfrog_phase2(triple& position, triple& velocity, const triple& acceleration, real dT);
+
+// System energy
+real calculate_kinetic_energy(real unadjusted_mass, const triple& velocity);
+real calculate_potential_energy(real unadjusted_mass_i, real unadjusted_mass_j, const triple& x_i, const triple& x_j);
 
 SOLARSIM_NS_END
 
