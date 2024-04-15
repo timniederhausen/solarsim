@@ -4,7 +4,7 @@ add_library(
     log.cpp
     body_definition_csv.cpp
     math.cpp
-    naive_simulator_sync.cpp
+    sync_simulator.cpp
 )
 
 # Add them as PRIVATE sources here so they show up in project files
