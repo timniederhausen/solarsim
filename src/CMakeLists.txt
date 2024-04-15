@@ -44,5 +44,7 @@ find_package(Boost REQUIRED COMPONENTS system)
 target_link_libraries(SolarSim_Library PUBLIC Boost::boost Boost::system)
 
 # TODO: seperate library for HPX executor?
-find_package(HPX REQUIRED)
-target_link_libraries(SolarSim_Library PUBLIC HPX::hpx)
+find_package(HPX)
+if(HPX_FOUND)
+  target_link_libraries(SolarSim_Library PUBLIC HPX::hpx)
+endif()
