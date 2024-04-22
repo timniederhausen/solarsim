@@ -56,6 +56,30 @@ struct axis_aligned_bounding_box
   triple max;
 };
 
+// TODO: move this somewhere else. it's not a "basic" type per-se and requires an include
+template <typename Char>
+class basic_zstring_view
+{
+public:
+  constexpr basic_zstring_view(const Char* s)
+    : data_(s)
+  {
+  }
+
+  template <typename Traits, typename Alloc>
+  constexpr basic_zstring_view(const std::basic_string<Char, Traits, Alloc>& s)
+    : data_(s.c_str())
+  {
+  }
+
+  constexpr const Char* c_str() const { return data_; }
+
+private:
+  const Char* data_;
+};
+
+using zstring_view = basic_zstring_view<char>;
+
 SOLARSIM_NS_END
 
 #include "solarsim/types_inlines.hpp"

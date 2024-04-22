@@ -84,18 +84,18 @@ std::vector<body_definition> load_from_csv_file(std::istream& input)
   return bodies;
 }
 
-std::vector<body_definition> load_from_csv_file(const char* filename)
+std::vector<body_definition> load_from_csv_file(zstring_view filename)
 {
-  std::ifstream istrm(filename, std::ios::binary);
+  std::ifstream istrm(filename.c_str(), std::ios::binary);
   if (!istrm.is_open())
-    throw std::runtime_error(fmt::format("failed to read {}", filename));
+    throw std::runtime_error(fmt::format("failed to read {}", filename.c_str()));
 
   return load_from_csv_file(istrm);
 }
 
-void save_to_csv_file(std::span<const body_definition> bodies, const char* filename)
+void save_to_csv_file(std::span<const body_definition> bodies, zstring_view filename)
 {
-  auto out = fmt::output_file(filename);
+  auto out = fmt::output_file(filename.c_str());
   out.print("id,name,class,mass,pos_x,pos_y,pos_z,vel_x,vel_y,vel_z\n");
   for (const auto& body : bodies) {
     // This doesn't look very maintainable. Maybe generate it with crapi?

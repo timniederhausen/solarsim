@@ -28,8 +28,8 @@
 
 SOLARSIM_NS_BEGIN
 
-std::vector<body_definition> load_from_csv_file(const char* filename);
-void save_to_csv_file(std::span<const body_definition> bodies, const char* filename);
+std::vector<body_definition> load_from_csv_file(zstring_view filename);
+void save_to_csv_file(std::span<const body_definition> bodies, zstring_view filename);
 
 SOLARSIM_NS_END
 
