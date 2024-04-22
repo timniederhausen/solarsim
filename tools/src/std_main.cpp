@@ -1,8 +1,9 @@
-#include <iostream>
 #include <solarsim/types.hpp>
 #include <solarsim/body_definition_csv.hpp>
 #include <solarsim/sync_simulator.hpp>
 #include <solarsim/math.hpp>
+
+#include <fmt/format.h>
 
 #include <span>
 
@@ -114,21 +115,22 @@ void denormalize_body_values_1970(body_definition& body)
   body.velocity[2] /= 1000;
 }
 */
-SOLARSIM_NS_END
 
 template <bool UseBarnesHut>
 void run_for_file(const std::string& filename, bool need_norm)
 {
-  using namespace solarsim;
+  fmt::print("Running on {} using {} {} normalization\n", filename, UseBarnesHut ? "barnes-hut" : "naive-sim",
+             need_norm ? "with" : "without");
 
-  auto dataset = load_from_csv_file(("dataset/" + filename).c_str());
+  const auto output_filename = fmt::format("{}{}", UseBarnesHut ? "BH_" : "", filename);
+  auto dataset               = load_from_csv_file("dataset/" + filename);
 
   if (need_norm) {
     for (auto& body : dataset)
       normalize_body_values(body);
   }
   adjust_initial_velocities(dataset);
-  save_to_csv_file(dataset, ("dataset_debug/" + filename).c_str());
+  save_to_csv_file(dataset, "dataset_debug/" + output_filename);
 
   if constexpr (!UseBarnesHut) {
     naive_sync_simulator simulator(dataset, .05);
@@ -142,16 +144,24 @@ void run_for_file(const std::string& filename, bool need_norm)
     for (auto& body : dataset)
       denormalize_body_values(body);
   }
-  save_to_csv_file(dataset, ("dataset_result/" + filename).c_str());
+  save_to_csv_file(dataset, "dataset_result/" + output_filename);
 }
+
+SOLARSIM_NS_END
 
 extern "C" int main(int argc, const char* argv[])
 {
+  (void)argc;
+  (void)argv;
   try {
-    // run_for_file("sol_1970_state_vectors.csv", false);
-    run_for_file<false>("planets_and_moons_state_vectors.csv", /*need_norm=*/true);
+    // vectors from the internet
+    // solarsim::run_for_file("sol_1970_state_vectors.csv", false);
+
+    // vectors from the institute
+    //solarsim::run_for_file<false>("planets_and_moons_state_vectors.csv", /*need_norm=*/true);
+    solarsim::run_for_file<true>("planets_and_moons_state_vectors.csv", /*need_norm=*/true);
   } catch (std::exception& e) {
-    std::cerr << e.what() << std::endl;
+    fmt::print("std::exception caught: {}\n", e.what());
   }
   return 0;
 }

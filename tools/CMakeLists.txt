@@ -4,7 +4,8 @@ add_executable(
     src/std_main.cpp
 )
 
-target_link_libraries(SolarSim_cli_std PUBLIC SolarSim_Library)
+find_package(fmt REQUIRED)
+target_link_libraries(SolarSim_cli_std PUBLIC SolarSim_Library PRIVATE fmt::fmt)
 
 find_package(HPX)
 if(HPX_FOUND)
