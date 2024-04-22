@@ -41,13 +41,13 @@ axis_aligned_bounding_box build_bounding_box(std::span<const body_definition> bo
 barnes_hut_octree_node& get_child_node(const barnes_hut_octree_node& node, const triple& pos)
 {
   // Make really sure we're not called with a position outside this node's bounds!
-  // Use some hardcoded epsilon to account for inaccuracies.
-  assert(pos[0] >= node.position[0] - 0.00001);
-  assert(pos[1] >= node.position[1] - 0.00001);
-  assert(pos[2] >= node.position[2] - 0.00001);
-  assert(pos[0] < node.position[0] + node.length + 0.00001);
-  assert(pos[1] < node.position[1] + node.length + 0.00001);
-  assert(pos[2] < node.position[2] + node.length + 0.00001);
+  constexpr real epsilon = 0.00001; // Use some hardcoded epsilon to account for inaccuracies.
+  assert(pos[0] >= node.position[0] - epsilon);
+  assert(pos[1] >= node.position[1] - epsilon);
+  assert(pos[2] >= node.position[2] - epsilon);
+  assert(pos[0] <= node.position[0] + node.length + epsilon);
+  assert(pos[1] <= node.position[1] + node.length + epsilon);
+  assert(pos[2] <= node.position[2] + node.length + epsilon);
 
   const triple center        = node.position + node.length / 2;
   const std::size_t offset_x = 4 * static_cast<std::size_t>(pos[0] >= center[0]);
@@ -109,11 +109,19 @@ void insert_body(barnes_hut_octree_node& node, const body_definition& body)
 
 barnes_hut_octree_node setup_root_node_with_bounds(const axis_aligned_bounding_box& aabb)
 {
+  assert(std::isfinite(aabb.min[0]));
+  assert(std::isfinite(aabb.min[1]));
+  assert(std::isfinite(aabb.min[2]));
+  assert(std::isfinite(aabb.max[0]));
+  assert(std::isfinite(aabb.max[1]));
+  assert(std::isfinite(aabb.max[2]));
+
   // Find (position, length) that encompasses this AABB
   // We don't really care about wasting space (i.e. making a larger bounding area than necessary)
   const triple center = (aabb.min + aabb.max) * 0.5;
   const triple d      = aabb.max - aabb.min;
   const real length   = std::max({d[0], d[1], d[2]});
+  assert(std::isfinite(length));
 
   return barnes_hut_octree_node{center - (length * 0.5), length};
 }
