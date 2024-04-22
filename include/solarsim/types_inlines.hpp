@@ -74,9 +74,10 @@ constexpr axis_aligned_bounding_box axis_aligned_bounding_box::infinity()
   // see: https://en.cppreference.com/w/cpp/types/numeric_limits/lowest
   constexpr real min = std::numeric_limits<real>::lowest();
   constexpr real max = std::numeric_limits<real>::max();
+  // important: max & min are swapped here
   return {
-      {min, min, min},
       {max, max, max},
+      {min, min, min},
   };
 }
 
