@@ -132,11 +132,21 @@ void run_for_file(const std::string& filename, bool need_norm)
   adjust_initial_velocities(dataset);
   save_to_csv_file(dataset, "dataset_debug/" + output_filename);
 
+  // Next, decompose the bodies into what we need
+  std::vector<triple> body_positions(dataset.size());
+  std::vector<triple> body_velocities(dataset.size());
+  std::vector<real> body_masses(dataset.size());
+  for (std::size_t i = 0, n = dataset.size(); i != n; ++i) {
+    body_positions[i]  = dataset[i].position;
+    body_velocities[i] = dataset[i].velocity;
+    body_masses[i]     = dataset[i].mass;
+  }
+
   if constexpr (!UseBarnesHut) {
-    naive_sync_simulator simulator(dataset, .05);
+    naive_sync_simulator simulator(body_positions, body_velocities, body_masses, .05);
     run_simulation(simulator, 60 * 60, year_in_seconds);
   } else {
-    barnes_hut_sync_simulator simulator(dataset, .05);
+    barnes_hut_sync_simulator simulator(body_positions, body_velocities, body_masses, .05);
     run_simulation(simulator, 60 * 60, year_in_seconds);
   }
 
@@ -158,7 +168,7 @@ extern "C" int main(int argc, const char* argv[])
     // solarsim::run_for_file("sol_1970_state_vectors.csv", false);
 
     // vectors from the institute
-    //solarsim::run_for_file<false>("planets_and_moons_state_vectors.csv", /*need_norm=*/true);
+    // solarsim::run_for_file<false>("planets_and_moons_state_vectors.csv", /*need_norm=*/true);
     solarsim::run_for_file<true>("planets_and_moons_state_vectors.csv", /*need_norm=*/true);
   } catch (std::exception& e) {
     fmt::print("std::exception caught: {}\n", e.what());

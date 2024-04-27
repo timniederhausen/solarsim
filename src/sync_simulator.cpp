@@ -19,27 +19,27 @@
 
 SOLARSIM_NS_BEGIN
 
-void naive_sync_simulator_impl::tick(std::span<const body_definition> bodies, real softening_factor,
-                                     std::span<triple> acceleration) const
+void naive_sync_simulator_impl::tick(std::span<const triple> body_positions, std::span<const real> body_masses,
+                                     real softening_factor, std::span<triple> acceleration) const
 {
   // TODO: Add a template argument for this?
   constexpr bool use_fused_acceleration_calculation = true;
 
   std::fill(acceleration.begin(), acceleration.end(), triple{});
 
-  for (std::size_t i = 0, n = bodies.size(); i != n; ++i) {
+  for (std::size_t i = 0, n = body_positions.size(); i != n; ++i) {
     // Obtain a_i by summing all pairwise acceleration values (i \ne j)
     if constexpr (use_fused_acceleration_calculation) {
       // do it for (i, j) & (j, i) at the same time
       for (std::size_t j = i + 1; j < n; ++j) {
-        calculate_acceleration(bodies[i].position, bodies[j].position, bodies[i].mass, bodies[j].mass, softening_factor,
+        calculate_acceleration(body_positions[i], body_positions[j], body_masses[i], body_masses[j], softening_factor,
                                acceleration[i], acceleration[j]);
       }
     } else {
       // very naive version, calculate it per body
       for (std::size_t j = 0; j != n; ++j) {
         if (i != j) {
-          calculate_acceleration(bodies[i].position, bodies[j].position, bodies[j].mass, softening_factor,
+          calculate_acceleration(body_positions[i], body_positions[j], body_masses[j], softening_factor,
                                  acceleration[i]);
         }
       }
@@ -47,13 +47,13 @@ void naive_sync_simulator_impl::tick(std::span<const body_definition> bodies, re
   }
 }
 
-void barnes_hut_sync_simulator_impl::tick(std::span<const body_definition> bodies, real softening_factor,
-                                          std::span<triple> acceleration) const
+void barnes_hut_sync_simulator_impl::tick(std::span<const triple> body_positions, std::span<const real> body_masses,
+                                          real softening_factor, std::span<triple> acceleration) const
 {
   std::fill(acceleration.begin(), acceleration.end(), triple{});
-  barnes_hut_octree octree(bodies);
-  for (std::size_t i = 0, n = bodies.size(); i != n; ++i) {
-    octree.apply_forces_to(bodies[i], softening_factor, acceleration[i]);
+  barnes_hut_octree octree(body_positions, body_masses);
+  for (std::size_t i = 0, n = body_positions.size(); i != n; ++i) {
+    octree.apply_forces_to(body_positions[i], softening_factor, acceleration[i]);
   }
 }
 

@@ -33,19 +33,21 @@
 SOLARSIM_NS_BEGIN
 
 template <typename T>
-concept simulation_algorithm = requires(T a) {
-  a.tick(std::declval<std::span<const body_definition>>(), real(), std::declval<std::span<triple>>());
-};
+concept simulation_algorithm =
+    requires(T a) { a.tick(std::span<const triple>(), std::span<const real>(), real(), std::span<triple>()); };
 
 /// Boilerplate for a simple synchronous simulator
 template <simulation_algorithm S, bool UseShiftedVerlet = true>
 class basic_sync_simulator
 {
 public:
-  basic_sync_simulator(std::span<body_definition> bodies, real softening_factor)
-    : bodies_(bodies)
+  basic_sync_simulator(std::span<triple> body_positions, std::span<triple> body_velocities,
+                       std::span<const real> body_masses, real softening_factor)
+    : body_positions_(body_positions)
+    , body_velocities_(body_velocities)
+    , body_masses_(body_masses)
     , softening_factor_(softening_factor)
-    , acceleration_(bodies_.size())
+    , acceleration_(body_positions.size())
   {
     if (!UseShiftedVerlet)
       update_acceleration();
@@ -60,7 +62,12 @@ public:
 private:
   void update_acceleration();
 
-  std::span<body_definition> bodies_;
+  // SoA layout is much more cache-friendly and decouples us from the bodies'
+  // details we don't need.
+  std::span<triple> body_positions_;
+  std::span<triple> body_velocities_;
+  std::span<const real> body_masses_;
+
   real softening_factor_;
 
   // Temporary cache for acceleration values during ticking
@@ -71,22 +78,22 @@ template <simulation_algorithm S, bool UseShiftedVerlet>
 void basic_sync_simulator<S, UseShiftedVerlet>::tick(real dT)
 {
   if constexpr (UseShiftedVerlet) {
-    for (std::size_t i = 0, n = bodies_.size(); i != n; ++i)
-      integrate_leapfrog_phase1(bodies_[i].position, bodies_[i].velocity, dT);
+    for (std::size_t i = 0, n = body_positions_.size(); i != n; ++i)
+      integrate_leapfrog_phase1(body_positions_[i], body_velocities_[i], dT);
 
     update_acceleration();
 
-    for (std::size_t i = 0, n = bodies_.size(); i != n; ++i)
-      integrate_leapfrog_phase2(bodies_[i].position, bodies_[i].velocity, acceleration_[i], dT);
+    for (std::size_t i = 0, n = body_positions_.size(); i != n; ++i)
+      integrate_leapfrog_phase2(body_positions_[i], body_velocities_[i], acceleration_[i], dT);
   } else {
     // needs previous acceleration!
-    for (std::size_t i = 0, n = bodies_.size(); i != n; ++i)
-      integrate_velocity_verlet_phase1(bodies_[i].position, bodies_[i].velocity, acceleration_[i], dT);
+    for (std::size_t i = 0, n = body_positions_.size(); i != n; ++i)
+      integrate_velocity_verlet_phase1(body_positions_[i], body_velocities_[i], acceleration_[i], dT);
 
     update_acceleration();
 
-    for (std::size_t i = 0, n = bodies_.size(); i != n; ++i)
-      integrate_velocity_verlet_phase2(bodies_[i].velocity, acceleration_[i], dT);
+    for (std::size_t i = 0, n = body_positions_.size(); i != n; ++i)
+      integrate_velocity_verlet_phase2(body_velocities_[i], acceleration_[i], dT);
   }
 }
 
@@ -94,19 +101,21 @@ template <simulation_algorithm S, bool UseShiftedVerlet>
 void basic_sync_simulator<S, UseShiftedVerlet>::update_acceleration()
 {
   S worker;
-  worker.tick(bodies_, softening_factor_, acceleration_);
+  worker.tick(body_positions_, body_masses_, softening_factor_, acceleration_);
 }
 
 // Simulation algorithm implementations:
 
 struct naive_sync_simulator_impl
 {
-  void tick(std::span<const body_definition> bodies, real softening_factor, std::span<triple> acceleration) const;
+  void tick(std::span<const triple> body_positions, std::span<const real> body_masses, real softening_factor,
+            std::span<triple> acceleration) const;
 };
 
 struct barnes_hut_sync_simulator_impl
 {
-  void tick(std::span<const body_definition> bodies, real softening_factor, std::span<triple> acceleration) const;
+  void tick(std::span<const triple> body_positions, std::span<const real> body_masses, real softening_factor,
+            std::span<triple> acceleration) const;
 };
 
 // Easy-to-use simulator types:

@@ -29,8 +29,6 @@
 
 SOLARSIM_NS_BEGIN
 
-struct body_definition;
-
 struct barnes_hut_octree_node
 {
   constexpr barnes_hut_octree_node(const triple& position, real length)
@@ -41,24 +39,36 @@ struct barnes_hut_octree_node
 
   [[nodiscard]] bool is_leaf() const noexcept { return !children[0]; }
 
-  // Our Barnes-Hut state
-  real total_mass                       = 0.0;
-  triple center_of_mass                 = {};
-  const body_definition* contained_body = nullptr;
+  barnes_hut_octree_node& get_child_for_position(const triple& pos) const;
+  void insert_body(const triple& body_position, real body_mass);
+
+  template <typename F>
+  void recursively_apply_node_gravity(const triple& body_position, real softening, F&& apply_gravity) const;
+
+private:
+  void subdivide_node();
 
   // Octree data
-public:                 // consider this private instead!
   triple position = {}; // top-left corner
   real length     = 0.0;
   std::array<std::unique_ptr<barnes_hut_octree_node>, 8> children;
+
+  // Barnes-Hut bounds for this node
+  real total_mass       = 0.0;
+  triple center_of_mass = {};
+
+  // Contained object (if any)
+  bool has_contained_body        = false;
+  triple contained_body_position = {};
+  real contained_body_mass       = 0.0;
 };
 
 class barnes_hut_octree
 {
 public:
-  barnes_hut_octree(std::span<const body_definition> bodies);
+  barnes_hut_octree(std::span<const triple> body_positions, std::span<const real> body_masses);
 
-  void apply_forces_to(const body_definition& body, real softening, triple& acceleration) const;
+  void apply_forces_to(const triple& body_position, real softening, triple& acceleration) const;
 
 private:
   axis_aligned_bounding_box bounds_;
