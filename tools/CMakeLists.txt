@@ -1,6 +1,7 @@
 # -- std runner
 add_executable(
     SolarSim_cli_std
+    src/dataset_conversion.hpp
     src/std_main.cpp
 )
 
@@ -12,6 +13,7 @@ if(HPX_FOUND)
   # -- HPX runner
   add_executable(
       SolarSim_cli_hpx
+      src/dataset_conversion.hpp
       src/hpx_main.cpp
   )
   target_link_libraries(SolarSim_cli_hpx
