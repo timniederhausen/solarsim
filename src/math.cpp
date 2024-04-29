@@ -19,22 +19,6 @@
 
 SOLARSIM_NS_BEGIN
 
-#if defined(_DEBUG)
-void debug_validate_acceleration(const triple& acceleration)
-{
-  // Make sure we don't end up with NaNs everywhere!
-  assert(!std::isnan(acceleration[0]));
-  assert(!std::isnan(acceleration[1]));
-  assert(!std::isnan(acceleration[2]));
-  // TODO: further validation? max/min values?
-}
-#else
-constexpr void debug_validate_acceleration(const triple& acceleration)
-{
-  // no op
-}
-#endif
-
 // In general, the formula is:
 //
 //   a_i = \sum_{i \ne j} G * m_j * (x_j - x_i) / pow(norm(x_j - x_i) + softening_factor, 3)
@@ -53,7 +37,7 @@ void calculate_acceleration(const triple& x_i, const triple& x_j, real unadjuste
   acceleration[0] += unadjusted_mass * displacement[0] / divisor;
   acceleration[1] += unadjusted_mass * displacement[1] / divisor;
   acceleration[2] += unadjusted_mass * displacement[2] / divisor;
-  debug_validate_acceleration(acceleration);
+  debug_validate_finite(acceleration);
 }
 
 // calculate acceleration pairwise for (i, j) and (j, i)
@@ -72,12 +56,12 @@ void calculate_acceleration(const triple& x_i, const triple& x_j, real unadjuste
   acceleration_i[0] += unadjusted_mass_j * displacement[0] / divisor;
   acceleration_i[1] += unadjusted_mass_j * displacement[1] / divisor;
   acceleration_i[2] += unadjusted_mass_j * displacement[2] / divisor;
-  debug_validate_acceleration(acceleration_i);
+  debug_validate_finite(acceleration_i);
 
   acceleration_j[0] -= unadjusted_mass_i * displacement[0] / divisor;
   acceleration_j[1] -= unadjusted_mass_i * displacement[1] / divisor;
   acceleration_j[2] -= unadjusted_mass_i * displacement[2] / divisor;
-  debug_validate_acceleration(acceleration_j);
+  debug_validate_finite(acceleration_j);
 }
 
 // Velocity verlet
@@ -86,7 +70,7 @@ void calculate_acceleration(const triple& x_i, const triple& x_j, real unadjuste
 // is re-calculated based on the new body positions.
 //
 // Steps:
-//   calculate acceleration(...)
+//   calculate acceleration(...) [or re-use from previous time step]
 //   integrate_velocity_verlet_phase1(...)
 //   calculate acceleration(...)
 //   integrate_velocity_verlet_phase2(...)
@@ -143,8 +127,7 @@ void integrate_leapfrog_phase2(triple& position, triple& velocity, const triple&
   position[2] += velocity[2] * 0.5 * dT;
 }
 
-// Energy calculation
-
+// System energy
 real calculate_kinetic_energy(real unadjusted_mass, const triple& velocity)
 {
   return 0.5 * unadjusted_mass * squared_length(velocity);
@@ -154,5 +137,16 @@ real calculate_potential_energy(real unadjusted_mass_i, real unadjusted_mass_j, 
 {
   return gravitational_constant * unadjusted_mass_i * unadjusted_mass_j / length(x_j - x_i);
 }
+
+// Data validation
+#if defined(_DEBUG)
+void debug_validate_finite(const triple& v)
+{
+  // Make sure we don't end up with NaNs everywhere!
+  assert(std::isfinite(v[0]));
+  assert(std::isfinite(v[1]));
+  assert(std::isfinite(v[2]));
+}
+#endif
 
 SOLARSIM_NS_END

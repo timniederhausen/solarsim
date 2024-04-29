@@ -137,12 +137,8 @@ axis_aligned_bounding_box build_bounding_box(std::span<const triple> positions)
 
 barnes_hut_octree_node setup_root_node_with_bounds(const axis_aligned_bounding_box& aabb)
 {
-  assert(std::isfinite(aabb.min[0]));
-  assert(std::isfinite(aabb.min[1]));
-  assert(std::isfinite(aabb.min[2]));
-  assert(std::isfinite(aabb.max[0]));
-  assert(std::isfinite(aabb.max[1]));
-  assert(std::isfinite(aabb.max[2]));
+  debug_validate_finite(aabb.min);
+  debug_validate_finite(aabb.max);
 
   // Find (position, length) that encompasses this AABB
   // We don't really care about wasting space (i.e. making a larger bounding area than necessary)

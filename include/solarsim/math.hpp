@@ -76,6 +76,16 @@ void integrate_leapfrog_phase2(triple& position, triple& velocity, const triple&
 real calculate_kinetic_energy(real unadjusted_mass, const triple& velocity);
 real calculate_potential_energy(real unadjusted_mass_i, real unadjusted_mass_j, const triple& x_i, const triple& x_j);
 
+// Data validation
+#if defined(_DEBUG)
+void debug_validate_finite(const triple& v);
+#else
+constexpr void debug_validate_finite(const triple& v)
+{
+  // no op
+}
+#endif
+
 SOLARSIM_NS_END
 
 #endif

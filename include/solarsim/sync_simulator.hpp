@@ -12,8 +12,8 @@
 ///
 /// You should have received a copy of the GNU General Public License
 /// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#ifndef SOLARSIM_NAIVESIMULATORSYNC_HPP
-#define SOLARSIM_NAIVESIMULATORSYNC_HPP
+#ifndef SOLARSIM_SYNCSIMULATOR_HPP
+#define SOLARSIM_SYNCSIMULATOR_HPP
 
 #include "solarsim/detail/config.hpp"
 
@@ -21,23 +21,24 @@
 #  pragma once
 #endif
 
-#include <cassert>
-
-#include "solarsim/body_definition.hpp"
+#include "solarsim/types.hpp"
+#include "solarsim/math.hpp"
 
 #include <vector>
 #include <span>
-
-#include "math.hpp"
+#include <cassert>
 
 SOLARSIM_NS_BEGIN
 
 template <typename T>
-concept simulation_algorithm =
-    requires(T a) { a.tick(std::span<const triple>(), std::span<const real>(), real(), std::span<triple>()); };
+concept simulation_algorithm = requires(T a) {
+  // We just need a tick() method for now.
+  // Might consider adding policy constants (desired units?, ...)
+  a.tick(std::span<const triple>(), std::span<const real>(), real(), std::span<triple>());
+};
 
 /// Boilerplate for a simple synchronous simulator
-template <simulation_algorithm S, bool UseShiftedVerlet = true>
+template <simulation_algorithm A, bool UseShiftedVerlet = true>
 class basic_sync_simulator
 {
 public:
@@ -74,34 +75,35 @@ private:
   std::vector<triple> acceleration_;
 };
 
-template <simulation_algorithm S, bool UseShiftedVerlet>
-void basic_sync_simulator<S, UseShiftedVerlet>::tick(real dT)
+template <simulation_algorithm A, bool UseShiftedVerlet>
+void basic_sync_simulator<A, UseShiftedVerlet>::tick(real dT)
 {
+  // Do phase 1 of the time integration
   if constexpr (UseShiftedVerlet) {
     for (std::size_t i = 0, n = body_positions_.size(); i != n; ++i)
       integrate_leapfrog_phase1(body_positions_[i], body_velocities_[i], dT);
-
-    update_acceleration();
-
-    for (std::size_t i = 0, n = body_positions_.size(); i != n; ++i)
-      integrate_leapfrog_phase2(body_positions_[i], body_velocities_[i], acceleration_[i], dT);
   } else {
     // needs previous acceleration!
     for (std::size_t i = 0, n = body_positions_.size(); i != n; ++i)
       integrate_velocity_verlet_phase1(body_positions_[i], body_velocities_[i], acceleration_[i], dT);
+  }
 
-    update_acceleration();
+  update_acceleration();
 
+  // Do phase 2 of the time integration
+  if constexpr (UseShiftedVerlet) {
+    for (std::size_t i = 0, n = body_positions_.size(); i != n; ++i)
+      integrate_leapfrog_phase2(body_positions_[i], body_velocities_[i], acceleration_[i], dT);
+  } else {
     for (std::size_t i = 0, n = body_positions_.size(); i != n; ++i)
       integrate_velocity_verlet_phase2(body_velocities_[i], acceleration_[i], dT);
   }
 }
 
-template <simulation_algorithm S, bool UseShiftedVerlet>
-void basic_sync_simulator<S, UseShiftedVerlet>::update_acceleration()
+template <simulation_algorithm A, bool UseShiftedVerlet>
+void basic_sync_simulator<A, UseShiftedVerlet>::update_acceleration()
 {
-  S worker;
-  worker.tick(body_positions_, body_masses_, softening_factor_, acceleration_);
+  A().tick(body_positions_, body_masses_, softening_factor_, acceleration_);
 }
 
 // Simulation algorithm implementations:
@@ -119,7 +121,6 @@ struct barnes_hut_sync_simulator_impl
 };
 
 // Easy-to-use simulator types:
-
 using naive_sync_simulator      = basic_sync_simulator<naive_sync_simulator_impl>;
 using barnes_hut_sync_simulator = basic_sync_simulator<barnes_hut_sync_simulator_impl>;
 
@@ -129,15 +130,14 @@ using barnes_hut_sync_simulator = basic_sync_simulator<barnes_hut_sync_simulator
  * \param time_step Time between simulation ticks
  * \param duration Total runtime of the simulation
  */
-template <typename Simulator>
-void run_simulation(Simulator& simulator, real time_step, real duration)
+template <simulation_algorithm A>
+void run_simulation(basic_sync_simulator<A>& simulator, real time_step, real duration)
 {
   assert(time_step <= duration);
 
   // Start simulating at |time_step|
-  for (real elapsed = time_step; elapsed < duration;) {
+  for (real elapsed = time_step; elapsed < duration; elapsed += time_step) {
     simulator.tick(time_step);
-    elapsed += time_step;
   }
 }
 
