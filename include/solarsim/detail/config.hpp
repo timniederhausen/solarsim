@@ -35,7 +35,12 @@
 #  define SOLARSIM_DECL
 #endif
 
-// TODO: every supported compiler has that?
+// Every supported compiler has that?
 #define SOLARSIM_HAS_PRAGMA_ONCE 1
+
+// We need at least C++20!
+#if (__cplusplus < 202002L)
+#  error Invalid __cplusplus value
+#endif
 
 #endif
