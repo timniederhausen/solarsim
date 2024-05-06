@@ -12,8 +12,8 @@
 ///
 /// You should have received a copy of the GNU General Public License
 /// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#ifndef SOLARSIM_EXECUTIONCONCEPTS_HPP
-#define SOLARSIM_EXECUTIONCONCEPTS_HPP
+#ifndef SOLARSIM_HPX_EXECUTIONCONCEPTS_HPP
+#define SOLARSIM_HPX_EXECUTIONCONCEPTS_HPP
 
 #include "solarsim/detail/config.hpp"
 
@@ -21,7 +21,7 @@
 #  pragma once
 #endif
 
-#include "solarsim/namespaces.hpp"
+#include "solarsim/hpx/namespaces.hpp"
 
 // needed for is_sender<> etc.
 #include <hpx/execution_base/completion_signatures.hpp>

@@ -1,7 +1,7 @@
 #include "dataset_conversion.hpp"
 
+#include <solarsim/hpx/async_simulator.hpp>
 #include <solarsim/body_definition_csv.hpp>
-#include <solarsim/async_simulator.hpp>
 
 #include <hpx/execution.hpp>
 #include <hpx/iostream.hpp>

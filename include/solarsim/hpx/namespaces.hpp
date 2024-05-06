@@ -12,16 +12,14 @@
 ///
 /// You should have received a copy of the GNU General Public License
 /// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#ifndef SOLARSIM_NAMESPACES_HPP
-#define SOLARSIM_NAMESPACES_HPP
+#ifndef SOLARSIM_HPX_NAMESPACES_HPP
+#define SOLARSIM_HPX_NAMESPACES_HPP
 
 #include "solarsim/detail/config.hpp"
 
 #if SOLARSIM_HAS_PRAGMA_ONCE
 #  pragma once
 #endif
-
-#include <string>
 
 // Don't #include HPX headers here unnecessarily!
 namespace hpx::execution::experimental::detail {

@@ -12,8 +12,8 @@
 ///
 /// You should have received a copy of the GNU General Public License
 /// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#ifndef SOLARSIM_ASYNCSIMULATOR_HPP
-#define SOLARSIM_ASYNCSIMULATOR_HPP
+#ifndef SOLARSIM_HPX_ASYNCSIMULATOR_HPP
+#define SOLARSIM_HPX_ASYNCSIMULATOR_HPP
 
 #include "solarsim/detail/config.hpp"
 
@@ -21,8 +21,8 @@
 #  pragma once
 #endif
 
+#include "solarsim/hpx/execution_concepts.hpp"
 #include "solarsim/sync_simulator.hpp"
-#include "solarsim/execution_concepts.hpp"
 
 #include <hpx/execution/algorithms/bulk.hpp>
 #include <hpx/execution/algorithms/let_value.hpp>

@@ -1,6 +1,5 @@
 #include "dataset_conversion.hpp"
 
-#include <solarsim/types.hpp>
 #include <solarsim/body_definition_csv.hpp>
 #include <solarsim/sync_simulator.hpp>
 #include <solarsim/math.hpp>

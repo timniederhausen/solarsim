@@ -80,7 +80,7 @@ real calculate_potential_energy(real unadjusted_mass_i, real unadjusted_mass_j, 
 #if defined(_DEBUG)
 void debug_validate_finite(const triple& v);
 #else
-constexpr void debug_validate_finite(const triple& v)
+constexpr void debug_validate_finite(const triple&)
 {
   // no op
 }

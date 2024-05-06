@@ -15,6 +15,7 @@
 #include "solarsim/barnes_hut_octree.hpp"
 #include "solarsim/math.hpp"
 
+#include <algorithm>
 #include <span>
 #include <cassert>
 
