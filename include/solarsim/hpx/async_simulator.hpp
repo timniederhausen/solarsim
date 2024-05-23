@@ -21,170 +21,41 @@
 #  pragma once
 #endif
 
-#include "solarsim/hpx/execution_concepts.hpp"
+#include "solarsim/hpx/namespaces.hpp"
+#include "solarsim/simulation_state.hpp"
+// Logic fragments come from the sync simulators!
 #include "solarsim/sync_simulator.hpp"
 
-#include <hpx/execution/algorithms/bulk.hpp>
-#include <hpx/execution/algorithms/let_value.hpp>
+#include <hpx/execution/traits/is_execution_policy.hpp>
+#include <hpx/parallel/algorithms/for_loop.hpp>
 
 SOLARSIM_NS_BEGIN
 
-// TODO: Perhaps there's a better way to express this...
-// I don't like introducing this type just for the async algorithms
-struct simulation_state
+namespace impl_hpx {
+
+// XXX: This could live elsewhere should we use those in more files
+template <typename ExPolicy>
+concept execution_policy = hpx::is_execution_policy_v<ExPolicy>;
+
+template <execution_policy ExPolicy>
+auto tick_simulation_phase1(ExPolicy&& policy, any_simulation_state auto&& state, real time_step)
 {
-  std::vector<triple> body_positions;
-  std::vector<triple> body_velocities;
-  std::vector<real> body_masses;
-  real softening_factor;
-  std::vector<triple> acceleration;
-};
+  return hpx::experimental::for_loop_n(
+      std::forward<ExPolicy>(policy), std::size_t(), get_dataset_size(state), [=](std::size_t i) {
+        integrate_leapfrog_phase1(state.body_positions[i], state.body_velocities[i], time_step);
+      });
+}
 
-template <typename T>
-concept any_simulation_state = requires(T a) {
-  // Let the span<> constructors do the heavy lifting here!
-  {
-    a.body_positions
-  } -> std::convertible_to<std::span<triple>>;
-  {
-    a.body_masses
-  } -> std::convertible_to<std::span<const real>>;
-  {
-    a.softening_factor
-  } -> std::convertible_to<real>;
-  {
-    a.acceleration
-  } -> std::convertible_to<std::span<triple>>;
-};
-
-struct simulation_state_view
+template <execution_policy ExPolicy>
+auto tick_simulation_phase2(ExPolicy&& policy, any_simulation_state auto&& state, real time_step)
 {
-  constexpr simulation_state_view()                             = default;
-  constexpr simulation_state_view(const simulation_state_view&) = default;
+  return hpx::experimental::for_loop_n(
+      std::forward<ExPolicy>(policy), std::size_t(), get_dataset_size(state), [=](std::size_t i) {
+        integrate_leapfrog_phase2(state.body_positions[i], state.body_velocities[i], state.acceleration[i], time_step);
+      });
+}
 
-  // conversion from e.g. owned to _view
-  constexpr simulation_state_view(const any_simulation_state auto& other)
-    : body_positions(other.body_positions)
-    , body_velocities(other.body_velocities)
-    , body_masses(other.body_masses)
-    , softening_factor(other.softening_factor)
-    , acceleration(other.acceleration)
-  {
-  }
-
-  constexpr simulation_state_view& operator=(const simulation_state_view&) = default;
-
-  std::span<triple> body_positions;
-  std::span<triple> body_velocities;
-  std::span<const real> body_masses;
-  real softening_factor = 0.0;
-  std::span<triple> acceleration;
-};
-
-// These algorithms follow the rules for pipeable sender adaptors
-// see: https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p2300r9.html#spec-execution.senders.adaptor.objects
-//
-// Possible futher work: https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p3300r0.html
-
-inline constexpr struct async_tick_naive_t
-{
-  constexpr auto operator()() const
-  {
-    return ex::then([](any_simulation_state auto&& state) {
-      naive_sync_simulator_impl().tick(state.body_positions, state.body_masses, state.softening_factor,
-                                       state.acceleration);
-      return std::move(state);
-    });
-  }
-
-  template <sender Sender>
-  constexpr auto operator()(Sender&& sender) const
-  {
-    return ex::then(std::forward<Sender>(sender), [](any_simulation_state auto&& state) {
-      naive_sync_simulator_impl().tick(state.body_positions, state.body_masses, state.softening_factor,
-                                       state.acceleration);
-      return std::move(state);
-    });
-  }
-} async_tick_naive{};
-
-// TODO: introduce parallel versions of these algorithms
-// Parallel construction of the tree might be possible, might also be out of scope?
-inline constexpr struct async_tick_barnes_hut_t
-{
-  constexpr auto operator()() const
-  {
-    return ex::then([](any_simulation_state auto&& state) {
-      barnes_hut_sync_simulator_impl().tick(state.body_positions, state.body_masses, state.softening_factor,
-                                            state.acceleration);
-      return std::move(state);
-    });
-  }
-
-  template <sender Sender>
-  constexpr auto operator()(Sender&& sender) const
-  {
-    return ex::then(std::forward<Sender>(sender), [](any_simulation_state auto&& state) {
-      barnes_hut_sync_simulator_impl().tick(state.body_positions, state.body_masses, state.softening_factor,
-                                            state.acceleration);
-      return std::move(state);
-    });
-  }
-} async_tick_barnes_hut{};
-
-inline constexpr struct async_tick_simulation_phase1_t
-{
-  constexpr auto operator()(std::size_t num_bodies, real dT) const
-  {
-    return ex::bulk(num_bodies, [=](std::size_t i, any_simulation_state auto& state) {
-      if constexpr (true) {
-        integrate_leapfrog_phase1(state.body_positions[i], state.body_velocities[i], dT);
-      } else {
-        // needs previous acceleration!
-        integrate_velocity_verlet_phase1(state.body_positions[i], state.body_velocities[i], state.acceleration[i], dT);
-      }
-    });
-  }
-
-  template <sender Sender>
-  constexpr auto operator()(Sender&& sender, std::size_t num_bodies, real dT) const
-  {
-    return ex::bulk(std::forward<Sender>(sender), num_bodies, [=](std::size_t i, any_simulation_state auto& state) {
-      if constexpr (true) {
-        integrate_leapfrog_phase1(state.body_positions[i], state.body_velocities[i], dT);
-      } else {
-        // needs previous acceleration!
-        integrate_velocity_verlet_phase1(state.body_positions[i], state.body_velocities[i], state.acceleration[i], dT);
-      }
-    });
-  }
-} async_tick_simulation_phase1{};
-
-inline constexpr struct async_tick_simulation_phase2_t
-{
-  constexpr auto operator()(std::size_t num_bodies, real dT) const
-  {
-    return ex::bulk(num_bodies, [=](std::size_t i, any_simulation_state auto& state) {
-      if constexpr (true) {
-        integrate_leapfrog_phase2(state.body_positions[i], state.body_velocities[i], state.acceleration[i], dT);
-      } else {
-        integrate_velocity_verlet_phase2(state.body_velocities[i], state.acceleration[i], dT);
-      }
-    });
-  }
-
-  template <sender Sender>
-  constexpr auto operator()(Sender&& sender, std::size_t num_bodies, real dT) const
-  {
-    return ex::bulk(std::forward<Sender>(sender), num_bodies, [=](std::size_t i, any_simulation_state auto& state) {
-      if constexpr (true) {
-        integrate_leapfrog_phase2(state.body_positions[i], state.body_velocities[i], state.acceleration[i], dT);
-      } else {
-        integrate_velocity_verlet_phase2(state.body_velocities[i], state.acceleration[i], dT);
-      }
-    });
-  }
-} async_tick_simulation_phase2{};
+} // namespace impl_hpx
 
 SOLARSIM_NS_END
 

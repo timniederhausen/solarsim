@@ -1,8 +1,10 @@
 #include "dataset_conversion.hpp"
 
 #include <solarsim/hpx/async_simulator.hpp>
+#include <solarsim/hpx/async_simulator_sender.hpp>
 #include <solarsim/body_definition_csv.hpp>
 
+#include <hpx/algorithm.hpp>
 #include <hpx/execution.hpp>
 #include <hpx/iostream.hpp>
 
@@ -22,8 +24,54 @@ void test_hpx_execution_ops()
   assert(v == 1010);
 }
 
+void run_with_senders(const simulation_state_view& state)
+{
+  // Could use different executors here
+  ex::thread_pool_scheduler exec{};
+
+  constexpr real time_step = 60 * 60;
+  for (real elapsed = time_step; elapsed < year_in_seconds; elapsed += time_step) {
+    // Very basic way of chaining these algorithms together to end up with:
+    // [parallel] integration step phase 1
+    // <barnes hut or naive acceleration update>
+    // [parallel] integration step phase 2
+
+    // TODO: make these easier to use
+    auto snd = ex::transfer_just(exec, state) |                                   //
+               async_tick_simulation_phase1(get_dataset_size(state), time_step) | //
+               async_tick_barnes_hut() |                                          //
+               async_tick_simulation_phase2(get_dataset_size(state), time_step);
+
+    tt::sync_wait(snd); // wait on this thread to finish
+  }
+}
+
+void run_with_parallel_algorithms(const simulation_state_view& state)
+{
+  // We have quite a few executors to choose from:
+  hpx::execution::parallel_executor par;
+  hpx::execution::parallel_executor par_nostack(hpx::threads::thread_priority::default_,
+                                                hpx::threads::thread_stacksize::nostack);
+  hpx::execution::experimental::scheduler_executor<hpx::execution::experimental::thread_pool_scheduler> sched_exec_tps;
+
+  constexpr real time_step = 60 * 60;
+  for (real elapsed = time_step; elapsed < year_in_seconds; elapsed += time_step) {
+    // Task-based parallel execution on our chosen Executor.
+    auto our_policy = hpx::execution::par(hpx::execution::task).on(sched_exec_tps);
+    auto future1    = impl_hpx::tick_simulation_phase1(our_policy, state, time_step);
+    auto future2    = future1.then([=](hpx::future<void>) {
+      barnes_hut_sync_simulator_impl().tick(state.body_positions, state.body_masses, state.softening_factor,
+                                               state.acceleration);
+    });
+    auto future3    = future2.then([=](hpx::future<void>) {
+      return impl_hpx::tick_simulation_phase2(our_policy, state, time_step);
+    });
+    future3.get(); // wait on this thread to finish
+  }
+}
+
 template <bool UseBarnesHut, typename DatasetPolicy>
-void run_for_file(const std::string& filename, bool need_norm)
+void run_for_file(const std::string& filename, auto&& impl, bool need_norm)
 {
   fmt::print("Running on {} using {} {} normalization\n", filename, UseBarnesHut ? "barnes-hut" : "naive-sim",
              need_norm ? "with" : "without");
@@ -52,27 +100,18 @@ void run_for_file(const std::string& filename, bool need_norm)
   // per-step acceleration
   std::vector<triple> acceleration(dataset.size());
 
-  // Could use different executors here
-  ex::thread_pool_scheduler exec{};
+  simulation_state_view state;
+  state.body_positions   = body_positions;
+  state.body_velocities  = body_velocities;
+  state.body_masses      = body_masses;
+  state.acceleration     = acceleration;
+  state.softening_factor = .05;
+  impl(state);
 
-  constexpr real time_step = 60 * 60;
-  for (real elapsed = time_step; elapsed < year_in_seconds; elapsed += time_step) {
-    simulation_state_view s;
-    s.body_positions  = body_positions;
-    s.body_velocities = body_velocities;
-    s.body_masses     = body_masses;
-    s.acceleration    = acceleration;
-
-    // Very basic way of chaining these algorithms together to end up with:
-    // [parallel] integration step phase 1
-    // <barnes hut or naive acceleration update>
-    // [parallel] integration step phase 2
-
-    // TODO: make these easier to use
-    tt::sync_wait(ex::transfer_just(exec, s) |                              //
-                  async_tick_simulation_phase1(dataset.size(), time_step) | //
-                  async_tick_barnes_hut() |                                 //
-                  async_tick_simulation_phase2(dataset.size(), time_step));
+  for (std::size_t i = 0, n = dataset.size(); i != n; ++i) {
+    dataset[i].position = body_positions[i];
+    dataset[i].velocity = body_velocities[i];
+    dataset[i].mass     = body_masses[i];
   }
 
   if (need_norm) {
@@ -87,14 +126,15 @@ SOLARSIM_NS_END
 int main()
 {
   solarsim::test_hpx_execution_ops();
-
   try {
     // vectors from the internet
     // solarsim::run_for_file("sol_1970_state_vectors.csv", false);
 
-    // vectors from the institute
-    // solarsim::run_for_file<false, solarsim::ipvs_dataset>("planets_and_moons_state_vectors.csv", /*need_norm=*/true);
-    solarsim::run_for_file<true, solarsim::ipvs_dataset>("planets_and_moons_state_vectors.csv", /*need_norm=*/true);
+    // simple test vectors from the institute
+    solarsim::run_for_file<false, solarsim::ipvs_dataset>("planets_and_moons_state_vectors.csv",
+                                                          solarsim::run_with_senders, /*need_norm=*/true);
+    solarsim::run_for_file<true, solarsim::ipvs_dataset>("planets_and_moons_state_vectors.csv",
+                                                         solarsim::run_with_parallel_algorithms, /*need_norm=*/true);
   } catch (std::exception& e) {
     fmt::print("std::exception caught: {}\n", e.what());
   }
