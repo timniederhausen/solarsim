@@ -70,12 +70,12 @@ void barnes_hut_octree_node::recursively_apply_node_gravity(const triple& body_p
 
   const real distance_to_center = ::solarsim::length(center_of_mass - body_position) + softening;
   if (length / distance_to_center < theta) {
-    // It's far enough away that our approximation suffices!
+    // It's far enough away that our approximation is sufficient.
     apply_gravity(center_of_mass, total_mass);
     return;
   }
 
-  // Leafs apply their bodies' force
+  // Leaf nodes apply their body's force
   if (is_leaf()) {
     if (has_contained_body) {
       apply_gravity(contained_body_position, contained_body_mass);
@@ -85,7 +85,26 @@ void barnes_hut_octree_node::recursively_apply_node_gravity(const triple& body_p
 
   // Otherwise, descend into our children
   for (auto& child : children) {
-    child->recursively_apply_node_gravity(body_position, softening, std::forward<F>(apply_gravity));
+    if (!child->is_leaf() || child->has_contained_body)
+      child->recursively_apply_node_gravity(body_position, softening, std::forward<F>(apply_gravity));
+  }
+}
+
+void barnes_hut_octree_node::finalize()
+{
+  if (is_leaf()) {
+    if (has_contained_body)
+      center_of_mass = contained_body_position * contained_body_mass;
+  } else {
+    triple mass_centers_sum = {};
+    for (auto& child : children) {
+      if (!child->is_leaf() || child->has_contained_body) {
+        child->finalize();
+        mass_centers_sum += child->center_of_mass * child->total_mass;
+      }
+    }
+    center_of_mass = mass_centers_sum / total_mass;
+    debug_validate_finite(center_of_mass);
   }
 }
 
@@ -160,6 +179,8 @@ barnes_hut_octree::barnes_hut_octree(std::span<const triple> body_positions, std
   assert(body_positions.size() == body_masses.size());
   for (std::size_t i = 0, n = body_positions.size(); i < n; ++i)
     root_.insert_body(body_positions[i], body_masses[i]);
+
+  root_.finalize();
 }
 
 void barnes_hut_octree::apply_forces_to(const triple& body_position, real softening, triple& acceleration) const

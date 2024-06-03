@@ -45,6 +45,8 @@ struct barnes_hut_octree_node
   template <typename F>
   void recursively_apply_node_gravity(const triple& body_position, real softening, F&& apply_gravity) const;
 
+  void finalize();
+
 private:
   void subdivide_node();
 
