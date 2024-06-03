@@ -25,8 +25,6 @@
 
 SOLARSIM_NS_BEGIN
 
-// TODO: add +=, -=, etc.
-
 constexpr triple operator*(const triple& lhs, real rhs)
 {
   return triple{lhs.v[0] * rhs, lhs.v[1] * rhs, lhs.v[2] * rhs};
@@ -66,6 +64,49 @@ constexpr triple operator-(const triple& lhs, const triple& rhs)
 constexpr triple operator-(const triple& lhs)
 {
   return triple{-lhs.v[0], -lhs.v[1], -lhs.v[2]};
+}
+
+constexpr triple& operator*=(triple& lhs, float rhs)
+{
+  lhs[0] *= rhs;
+  lhs[1] *= rhs;
+  lhs[2] *= rhs;
+  return lhs;
+}
+constexpr triple& operator/=(triple& lhs, float rhs)
+{
+  lhs[0] /= rhs;
+  lhs[1] /= rhs;
+  lhs[2] /= rhs;
+  return lhs;
+}
+constexpr triple& operator+=(triple& lhs, const triple& rhs)
+{
+  lhs[0] += rhs[0];
+  lhs[1] += rhs[1];
+  lhs[2] += rhs[2];
+  return lhs;
+}
+constexpr triple& operator-=(triple& lhs, const triple& rhs)
+{
+  lhs[0] -= rhs[0];
+  lhs[1] -= rhs[1];
+  lhs[2] -= rhs[2];
+  return lhs;
+}
+constexpr triple& operator*=(triple& lhs, const triple& rhs)
+{
+  lhs[0] *= rhs[0];
+  lhs[1] *= rhs[1];
+  lhs[2] *= rhs[2];
+  return lhs;
+}
+constexpr triple& operator/=(triple& lhs, const triple& rhs)
+{
+  lhs[0] /= rhs[0];
+  lhs[1] /= rhs[1];
+  lhs[2] /= rhs[2];
+  return lhs;
 }
 
 constexpr axis_aligned_bounding_box axis_aligned_bounding_box::infinity()
