@@ -62,7 +62,7 @@ struct simulation_state_view
   constexpr simulation_state_view(const simulation_state_view&) = default;
 
   // conversion from e.g. owned to a view
-  constexpr simulation_state_view(const any_simulation_state auto& other)
+  constexpr simulation_state_view(any_simulation_state auto&& other)
     : body_positions(other.body_positions)
     , body_velocities(other.body_velocities)
     , body_masses(other.body_masses)
