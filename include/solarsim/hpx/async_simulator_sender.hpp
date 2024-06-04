@@ -24,6 +24,7 @@
 #include "solarsim/hpx/execution_concepts.hpp"
 #include "solarsim/simulation_state.hpp"
 // Logic fragments come from the sync simulators!
+#include "solarsim/barnes_hut_octree.hpp"
 #include "solarsim/sync_simulator.hpp"
 
 #include <hpx/execution/algorithms/bulk.hpp>
@@ -60,26 +61,44 @@ inline constexpr struct async_tick_naive_t
   }
 } async_tick_naive{};
 
-// TODO: introduce parallel versions of these algorithms
-// Parallel construction of the tree might be possible, might also be out of scope?
 inline constexpr struct async_tick_barnes_hut_t
 {
-  constexpr auto operator()() const
+  constexpr auto operator()(auto sch) const
   {
-    return ex::then([](any_simulation_state auto&& state) {
-      barnes_hut_sync_simulator_impl().tick(state.body_positions, state.body_masses, state.softening_factor,
-                                            state.acceleration);
-      return std::move(state);
+    return ex::let_value([sch](any_simulation_state auto&& state) {
+      std::fill(state.acceleration.begin(), state.acceleration.end(), triple{});
+
+      barnes_hut_octree octree(state.body_positions, state.body_masses);
+      const auto n = get_dataset_size(state);
+
+      return ex::transfer_just(sch, std::move(state), std::move(octree)) |
+             ex::bulk(n,
+                      [](std::size_t i, any_simulation_state auto& state, const barnes_hut_octree& octree) {
+                        octree.apply_forces_to(state.body_positions[i], state.softening_factor, state.acceleration[i]);
+                      }) |
+             ex::then([=](any_simulation_state auto&& state, const barnes_hut_octree&) {
+               return std::move(state);
+             });
     });
   }
 
   template <sender Sender>
-  constexpr auto operator()(Sender&& sender) const
+  constexpr auto operator()(Sender&& sender, auto sch, const std::size_t& num_bodies) const
   {
-    return ex::then(std::forward<Sender>(sender), [](any_simulation_state auto&& state) {
-      barnes_hut_sync_simulator_impl().tick(state.body_positions, state.body_masses, state.softening_factor,
-                                            state.acceleration);
-      return std::move(state);
+    return ex::let_value(std::forward<Sender>(sender), [sch](any_simulation_state auto&& state) {
+      std::fill(state.acceleration.begin(), state.acceleration.end(), triple{});
+
+      barnes_hut_octree octree(state.body_positions, state.body_masses);
+      const auto n = get_dataset_size(state);
+
+      return ex::transfer_just(sch, std::move(state), std::move(octree)) |
+             ex::bulk(n,
+                      [](std::size_t i, any_simulation_state auto& state, const barnes_hut_octree& octree) {
+                        octree.apply_forces_to(state.body_positions[i], state.softening_factor, state.acceleration[i]);
+                      }) |
+             ex::then([=](any_simulation_state auto&& state, const barnes_hut_octree&) {
+               return std::move(state);
+             });
     });
   }
 } async_tick_barnes_hut{};

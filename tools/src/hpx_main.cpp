@@ -36,13 +36,12 @@ void run_with_senders(const simulation_state_view& state)
     // <barnes hut or naive acceleration update>
     // [parallel] integration step phase 2
 
-    // TODO: make these easier to use
     auto snd = ex::transfer_just(exec, state) |                                   //
                async_tick_simulation_phase1(get_dataset_size(state), time_step) | //
-               async_tick_barnes_hut() |                                          //
+               async_tick_barnes_hut(exec) |                                          //
                async_tick_simulation_phase2(get_dataset_size(state), time_step);
 
-    tt::sync_wait(snd); // wait on this thread to finish
+    tt::sync_wait(std::move(snd)); // wait on this thread to finish
   }
 }
 
