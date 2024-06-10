@@ -11,6 +11,10 @@ add_executable(
 )
 target_link_libraries(SolarSim_cli_std PUBLIC SolarSim_Library PRIVATE fmt::fmt)
 
+if(NOT CMAKE_SKIP_INSTALL_RULES)
+  install (TARGETS SolarSim_cli_std)
+endif()
+
 # HPX runner
 if(HPX_FOUND AND stdexec_FOUND)
   add_executable(
@@ -22,6 +26,10 @@ if(HPX_FOUND AND stdexec_FOUND)
     PUBLIC SolarSim_Library
     PRIVATE fmt::fmt HPX::hpx HPX::wrap_main HPX::iostreams_component
   )
+
+  if(NOT CMAKE_SKIP_INSTALL_RULES)
+    install (TARGETS SolarSim_cli_hpx)
+  endif()
 endif()
 
 # Benchmark tool
@@ -35,4 +43,8 @@ if(HPX_FOUND AND stdexec_FOUND AND benchmark_FOUND)
     PUBLIC SolarSim_Library
     PRIVATE fmt::fmt HPX::hpx HPX::wrap_main HPX::iostreams_component STDEXEC::stdexec benchmark::benchmark
   )
+
+  if(NOT CMAKE_SKIP_INSTALL_RULES)
+    install (TARGETS SolarSim_benchmark)
+  endif()
 endif()
