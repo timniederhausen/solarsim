@@ -9,7 +9,6 @@ add_executable(
     src/dataset_conversion.hpp
     src/std_main.cpp
 )
-
 target_link_libraries(SolarSim_cli_std PUBLIC SolarSim_Library PRIVATE fmt::fmt)
 
 # HPX runner
