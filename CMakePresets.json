@@ -85,7 +85,7 @@
       "hidden": true,
       "inherits": ["flags-gcc-clang", "ci-std"],
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
       }
     },
     {
@@ -94,7 +94,7 @@
       "hidden": true,
       "inherits": ["flags-appleclang", "ci-std"],
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
       }
     },
     {
