@@ -28,6 +28,10 @@
     {
       "name": "benchmark",
       "version>=": "1.8.3"
+    },
+    {
+      "name": "gflags",
+      "version>=": "2.2.2#9"
     }
   ],
   "default-features": [],

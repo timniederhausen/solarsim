@@ -11,6 +11,7 @@
 #include <hpx/init.hpp>
 
 #include <benchmark/benchmark.h>
+#include <gflags/gflags.h>
 
 SOLARSIM_NS_BEGIN
 
@@ -88,8 +89,9 @@ static const simulation_state& get_problem_for_weak_scaling(uint32_t expansion)
 
 SOLARSIM_NS_END
 
-inline constexpr solarsim::real time_step = 60 * 60;
-inline constexpr solarsim::real duration  = time_step * 60;
+DEFINE_double(time_step, 60 * 60, "Time between simulation steps (in s)");
+DEFINE_double(duration, (60 * 60) * 15, "Total duration of the simulation (in s)");
+
 // yeah, no way on this computer!
 // inline constexpr solarsim::real duration  = solarsim::year_in_seconds;
 
@@ -103,7 +105,7 @@ static void BM_Naive_ST(benchmark::State& state)
   auto data = solarsim::get_problem_for_strong_scaling();
   for (auto _ : state) {
     solarsim::naive_sync_simulator simulator(data.body_positions, data.body_velocities, data.body_masses, .05);
-    run_simulation(simulator, time_step, duration);
+    run_simulation(simulator, FLAGS_time_step, FLAGS_duration);
   }
 }
 BENCHMARK(BM_Naive_ST);
@@ -113,7 +115,7 @@ static void BM_BH_ST(benchmark::State& state)
   auto data = solarsim::get_problem_for_strong_scaling();
   for (auto _ : state) {
     solarsim::barnes_hut_sync_simulator simulator(data.body_positions, data.body_velocities, data.body_masses, .05);
-    run_simulation(simulator, time_step, duration);
+    run_simulation(simulator, FLAGS_time_step, FLAGS_duration);
   }
 }
 BENCHMARK(BM_BH_ST);
@@ -144,16 +146,16 @@ static void BM_BH_MT_HPXSenders(benchmark::State& state)
 
   auto data = get_data_for<S>(state.range(0));
   for (auto _ : state) {
-    for (solarsim::real elapsed = time_step; elapsed < duration; elapsed += time_step) {
+    for (solarsim::real elapsed = FLAGS_time_step; elapsed < FLAGS_duration; elapsed += FLAGS_time_step) {
       // Very basic way of chaining these algorithms together to end up with:
       // [parallel] integration step phase 1
       // <barnes hut or naive acceleration update>
       // [parallel] integration step phase 2
 
       auto snd = solarsim::ex::transfer_just(sched, solarsim::simulation_state_view(data)) |           //
-                 solarsim::async_tick_simulation_phase1(solarsim::get_dataset_size(data), time_step) | //
+                 solarsim::async_tick_simulation_phase1(solarsim::get_dataset_size(data), FLAGS_time_step) | //
                  solarsim::async_tick_barnes_hut(sched) |                                              //
-                 solarsim::async_tick_simulation_phase2(solarsim::get_dataset_size(data), time_step);
+                 solarsim::async_tick_simulation_phase2(solarsim::get_dataset_size(data), FLAGS_time_step);
 
       solarsim::tt::sync_wait(std::move(snd)); // wait on this thread to finish
     }
@@ -168,15 +170,15 @@ static void BM_BH_MT_HPXFutures(benchmark::State& state)
   auto data = get_data_for<S>(state.range(0));
   for (auto _ : state) {
     auto view = solarsim::simulation_state_view(data);
-    for (solarsim::real elapsed = time_step; elapsed < duration; elapsed += time_step) {
+    for (solarsim::real elapsed = FLAGS_time_step; elapsed < FLAGS_duration; elapsed += FLAGS_time_step) {
       // Task-based parallel execution on our chosen Executor.
       auto our_policy = hpx::execution::par(hpx::execution::task).on(exec);
-      auto future1    = solarsim::impl_hpx::tick_simulation_phase1(our_policy, view, time_step);
+      auto future1    = solarsim::impl_hpx::tick_simulation_phase1(our_policy, view, FLAGS_time_step);
       auto future2    = future1.then([=](hpx::future<void>) {
         return solarsim::impl_hpx::tick_barnes_hut(our_policy, view);
       });
       auto future3    = future2.then([=](hpx::future<void>) {
-        return solarsim::impl_hpx::tick_simulation_phase2(our_policy, view, time_step);
+        return solarsim::impl_hpx::tick_simulation_phase2(our_policy, view, FLAGS_time_step);
       });
       future3.get(); // wait on this thread to finish
     }
@@ -198,6 +200,7 @@ BENCHMARK(BM_BH_MT_HPXSenders<Scaling::Weak>) SETUP_MT_BENCHMARK;
 
 int hpx_main(int argc, char** argv)
 {
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
   if (::benchmark::ReportUnrecognizedArguments(argc, argv))
     return 1;
   ::benchmark::RunSpecifiedBenchmarks();
