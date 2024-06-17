@@ -46,7 +46,7 @@ struct benchmark_simulator_data
   simulation_state state;
 };
 
-const simulation_state& load_benchmark_data()
+static const simulation_state& get_problem_for_strong_scaling()
 {
   // <static const> gives us "free" on-demand thread safe init for our static dataset
   // Dataset selection:
@@ -55,10 +55,41 @@ const simulation_state& load_benchmark_data()
   return d.state;
 }
 
+// NOTE: only call this from the main thread!
+static const simulation_state& get_problem_for_weak_scaling(uint32_t expansion)
+{
+  const auto& state = get_problem_for_strong_scaling();
+  if (expansion == 1)
+    return state;
+
+  static simulation_state expanded_problem;
+
+  expanded_problem.body_positions.clear();
+  expanded_problem.body_velocities.clear();
+  expanded_problem.body_masses.clear();
+
+  expanded_problem.body_positions.reserve(state.body_positions.size() * expansion);
+  expanded_problem.body_velocities.reserve(state.body_velocities.size() * expansion);
+  expanded_problem.body_masses.reserve(state.body_masses.size() * expansion);
+
+  for (uint32_t i = 0; i != expansion; ++i) {
+    expanded_problem.body_positions.insert(expanded_problem.body_positions.end(), state.body_positions.begin(),
+                                           state.body_positions.end());
+    expanded_problem.body_velocities.insert(expanded_problem.body_velocities.end(), state.body_velocities.begin(),
+                                            state.body_velocities.end());
+    expanded_problem.body_masses.insert(expanded_problem.body_masses.end(), state.body_masses.begin(),
+                                        state.body_masses.end());
+  }
+
+  expanded_problem.softening_factor = state.softening_factor;
+  expanded_problem.acceleration.resize(state.acceleration.size() * expansion);
+  return expanded_problem;
+}
+
 SOLARSIM_NS_END
 
 inline constexpr solarsim::real time_step = 60 * 60;
-inline constexpr solarsim::real duration  = time_step * 15;
+inline constexpr solarsim::real duration  = time_step * 60;
 // yeah, no way on this computer!
 // inline constexpr solarsim::real duration  = solarsim::year_in_seconds;
 
@@ -66,19 +97,20 @@ inline constexpr solarsim::real duration  = time_step * 15;
 // Benchmark harnesses
 //
 
+// Singlethreaded:
 static void BM_Naive_ST(benchmark::State& state)
 {
-  auto data = solarsim::load_benchmark_data();
+  auto data = solarsim::get_problem_for_strong_scaling();
   for (auto _ : state) {
     solarsim::naive_sync_simulator simulator(data.body_positions, data.body_velocities, data.body_masses, .05);
     run_simulation(simulator, time_step, duration);
   }
 }
-// BENCHMARK(BM_Naive_ST);
+BENCHMARK(BM_Naive_ST);
 
 static void BM_BH_ST(benchmark::State& state)
 {
-  auto data = solarsim::load_benchmark_data();
+  auto data = solarsim::get_problem_for_strong_scaling();
   for (auto _ : state) {
     solarsim::barnes_hut_sync_simulator simulator(data.body_positions, data.body_velocities, data.body_masses, .05);
     run_simulation(simulator, time_step, duration);
@@ -86,6 +118,7 @@ static void BM_BH_ST(benchmark::State& state)
 }
 BENCHMARK(BM_BH_ST);
 
+// Multithreaded:
 enum class Scaling
 {
   // i.e. fixed work per thread
@@ -95,12 +128,11 @@ enum class Scaling
 };
 
 template <Scaling S>
-inline solarsim::simulation_state get_data_for(std::size_t threads = 1)
+inline const solarsim::simulation_state& get_data_for(std::size_t threads = 1)
 {
-  (void)threads;
   switch (S) {
-    case Scaling::Strong: return solarsim::load_benchmark_data();
-    case Scaling::Weak:   // TODO
+    case Scaling::Strong: return solarsim::get_problem_for_strong_scaling();
+    case Scaling::Weak:   return solarsim::get_problem_for_weak_scaling(threads);
     default:              throw std::runtime_error("not implemented");
   }
 }
@@ -120,11 +152,9 @@ static void BM_BH_MT_HPXSenders(benchmark::State& state)
 
       auto snd = solarsim::ex::transfer_just(sched, solarsim::simulation_state_view(data)) |           //
                  solarsim::async_tick_simulation_phase1(solarsim::get_dataset_size(data), time_step) | //
-                 solarsim::async_tick_barnes_hut(sched) |                                                   //
+                 solarsim::async_tick_barnes_hut(sched) |                                              //
                  solarsim::async_tick_simulation_phase2(solarsim::get_dataset_size(data), time_step);
 
-      static_assert(solarsim::ex::is_sender_v<decltype(snd)>);
-      // std::cerr << "DOING BM_BH_MT_HPXSenders" << std::endl;
       solarsim::tt::sync_wait(std::move(snd)); // wait on this thread to finish
     }
   }
@@ -148,7 +178,6 @@ static void BM_BH_MT_HPXFutures(benchmark::State& state)
       auto future3    = future2.then([=](hpx::future<void>) {
         return solarsim::impl_hpx::tick_simulation_phase2(our_policy, view, time_step);
       });
-      // std::cerr << "DOING BM_BH_MT_HPXFutures" << std::endl;
       future3.get(); // wait on this thread to finish
     }
   }
@@ -162,8 +191,8 @@ BENCHMARK(BM_BH_MT_HPXSenders<Scaling::Strong>) SETUP_MT_BENCHMARK;
 BENCHMARK(BM_BH_MT_HPXFutures<Scaling::Strong>) SETUP_MT_BENCHMARK;
 
 // then weak scaling
-/*BENCHMARK(BM_BH_MT_HPXFutures<Scaling::Weak>) SETUP_MT_BENCHMARK;
-BENCHMARK(BM_BH_MT_HPXSenders<Scaling::Weak>) SETUP_MT_BENCHMARK;*/
+BENCHMARK(BM_BH_MT_HPXFutures<Scaling::Weak>) SETUP_MT_BENCHMARK;
+BENCHMARK(BM_BH_MT_HPXSenders<Scaling::Weak>) SETUP_MT_BENCHMARK;
 
 #undef SETUP_MT_BENCHMARK
 
