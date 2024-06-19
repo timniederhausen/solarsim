@@ -49,6 +49,13 @@ jobs:
     - name: Configure
       run: cmake --preset=ci-coverage
 
+    - name: Dump configure logs
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: cmake-error-coverage
+        path: '${{ env.VCPKG_ROOT }}/buildtrees/*/*.log'
+
     - name: Build
       run: cmake --build build/coverage -j 2
 
@@ -80,6 +87,13 @@ jobs:
 
     - name: Configure
       run: cmake --preset=ci-sanitize
+
+    - name: Dump configure logs
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: cmake-error-sanitize
+        path: '${{ env.VCPKG_ROOT }}/buildtrees/*/*.log'
 
     - name: Build
       run: cmake --build build/sanitize -j 2
@@ -135,6 +149,13 @@ jobs:
       shell: pwsh
       run: cmake "--preset=ci-$("${{ matrix.os }}".split("-")[0])"
         -D BUILD_SHARED_LIBS=${{ matrix.shared }}
+
+    - name: Dump configure logs
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: cmake-error-${{ matrix.os }}-${{ matrix.type }}
+        path: '${{ env.VCPKG_ROOT }}/buildtrees/*/*.log'
 
     - name: Setup PATH
       if: matrix.os == 'windows-2022' && matrix.type == 'shared'
