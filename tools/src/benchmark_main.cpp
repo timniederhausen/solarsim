@@ -118,9 +118,11 @@ template <Scaling S>
 static void BM_BH_MT_HPXSenders(benchmark::State& state)
 {
   const solarsim::real duration = FLAGS_duration * (S == Scaling::Weak ? state.range(0) : 1.0);
-  auto data = solarsim::get_problem();
-  
-  hpx::execution::experimental::thread_pool_scheduler sched;
+  auto data                     = solarsim::get_problem();
+
+  auto sched = hpx::parallel::execution::with_processing_units_count(
+      hpx::execution::experimental::thread_pool_scheduler{}, state.range(0));
+
   for (auto _ : state) {
     for (solarsim::real elapsed = FLAGS_time_step; elapsed < duration; elapsed += FLAGS_time_step) {
       // Very basic way of chaining these algorithms together to end up with:
@@ -142,9 +144,12 @@ template <Scaling S>
 static void BM_BH_MT_HPXFutures(benchmark::State& state)
 {
   const solarsim::real duration = FLAGS_duration * (S == Scaling::Weak ? state.range(0) : 1.0);
-  auto data = solarsim::get_problem();
-  
-  hpx::execution::experimental::scheduler_executor<hpx::execution::experimental::thread_pool_scheduler> exec;
+  auto data                     = solarsim::get_problem();
+
+  auto exec = hpx::parallel::execution::with_processing_units_count(
+      hpx::execution::experimental::scheduler_executor<hpx::execution::experimental::thread_pool_scheduler>{},
+      state.range(0));
+
   for (auto _ : state) {
     auto view = solarsim::simulation_state_view(data);
     for (solarsim::real elapsed = FLAGS_time_step; elapsed < duration; elapsed += FLAGS_time_step) {
@@ -202,11 +207,14 @@ extern "C" int main(int argc, char* argv[])
     gflags::ShowUsageWithFlags("SolarSim_benchmark");
   });
 
-  const std::vector<std::string> cfg = {// "all" for HT cores as well
-                                        "hpx.os_threads=cores",
+  const std::vector<std::string> cfg = {
+      // "all" for HT cores as well
+      "hpx.os_threads=cores",
 
-                                        // Needed if we wanted to initialize Google benchmark later
-                                        "hpx.commandline.allow_unknown=1", "hpx.commandline.aliasing=0"};
+      // Needed if we want to parse arguments later.
+      "hpx.commandline.allow_unknown=1",
+      "hpx.commandline.aliasing=0",
+  };
   hpx::local::init_params init_args;
   init_args.cfg = cfg;
   return hpx::local::init(&hpx_main, argc, argv, init_args);
