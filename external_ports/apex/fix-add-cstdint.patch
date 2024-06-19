@@ -1,0 +1,12 @@
+diff --git a/src/apex/gzstream.hpp b/src/apex/gzstream.hpp
+index 7b4a7961..7d8e445a 100644
+--- a/src/apex/gzstream.hpp
++++ b/src/apex/gzstream.hpp
+@@ -15,6 +15,7 @@
+ #include <type_traits>
+ #include <vector>
+ #include <zlib.h>
++#include <cstdint>
+ 
+ namespace apex { namespace io {
+ 

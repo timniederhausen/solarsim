@@ -9,6 +9,8 @@ vcpkg_from_github(
     REF "v${VERSION}"
     SHA512 e1cc9fa72cba4e66b5d6eff2487e93d5d553c32e6eebcfe9131bf69c5b595ab72295ff0986c81d5dc6a7caa8303d6709df91333f64efe59ee256d99a8c289dc5
     HEAD_REF master
+    PATCHES
+        fix-find-apex-anywhere.patch
 )
 
 vcpkg_check_features(

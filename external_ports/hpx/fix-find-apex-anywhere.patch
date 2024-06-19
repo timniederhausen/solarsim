@@ -1,0 +1,13 @@
+diff --git a/cmake/HPX_SetupApex.cmake b/cmake/HPX_SetupApex.cmake
+index 2b3d071e50..f0b5511d9f 100644
+--- a/cmake/HPX_SetupApex.cmake
++++ b/cmake/HPX_SetupApex.cmake
+@@ -94,7 +94,7 @@ if(HPX_WITH_APEX AND NOT TARGET APEX::apex)
+     if(Apex_ROOT)
+       find_package(APEX REQUIRED PATHS ${Apex_ROOT})
+     else()
+-      hpx_error("Apex_ROOT not set.")
++      find_package(APEX REQUIRED)
+     endif()
+   endif()
+ 
