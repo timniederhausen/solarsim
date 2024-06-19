@@ -7,11 +7,8 @@ vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO STEllAR-GROUP/hpx
     REF "v${VERSION}"
-    SHA512 c02512bdfe79ab4bc5900a9977a3f916e3faef7694f048d6a7f691c89f9648a27057b0e34e364d59e62b831f700e66cc6df557c1d53cb8a5569db07e0d13de3e
+    SHA512 e1cc9fa72cba4e66b5d6eff2487e93d5d553c32e6eebcfe9131bf69c5b595ab72295ff0986c81d5dc6a7caa8303d6709df91333f64efe59ee256d99a8c289dc5
     HEAD_REF master
-    PATCHES
-        fix-dependency-hwloc.patch
-        fix_output_name_clash.patch
 )
 
 vcpkg_check_features(
@@ -27,6 +24,11 @@ vcpkg_check_features(
 
 if(NOT VCPKG_TARGET_ARCHITECTURE MATCHES "(x64|x86)")
     list(APPEND FEATURE_OPTIONS "-DHPX_WITH_GENERIC_CONTEXT_COROUTINES=ON")
+endif()
+
+# Enable APEX on non-Windows
+if(NOT VCPKG_TARGET_IS_WINDOWS)
+    list(APPEND FEATURE_OPTIONS "-DHPX_WITH_APEX=ON")
 endif()
 
 file(REMOVE "${SOURCE_PATH}/cmake/FindBZip2.cmake") # Outdated
@@ -50,6 +52,8 @@ vcpkg_cmake_configure(
         -DHPX_WITH_THREAD_IDLE_RATES=ON
         # Otherwise the checks are pretty useless
         -DHPX_WITH_VERIFY_LOCKS_BACKTRACE=ON
+        # IPVS has big systems
+        -DHPX_WITH_MAX_CPU_COUNT=256
         -DVCPKG_HOST_TRIPLET=${_HOST_TRIPLET}
 )
 vcpkg_cmake_install()

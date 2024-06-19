@@ -1,3 +1,3 @@
 # What is this?
 
-This contains forks of official vcpkg ports.
+This contains custom vcpkg ports and forks of official ones.
