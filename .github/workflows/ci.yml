@@ -28,6 +28,9 @@ jobs:
 
     runs-on: ubuntu-24.04
 
+    env:
+      APEX_DISABLE: "1"
+
     # To enable coverage, delete the last line from the conditional below and
     # edit the "<name>" placeholder to your GitHub name.
     # If you do not wish to use codecov, then simply delete this job from the
@@ -76,7 +79,9 @@ jobs:
 
     runs-on: ubuntu-24.04
 
-    env: { CXX: clang++-17 }
+    env:
+      CXX: clang++-17
+      APEX_DISABLE: "1"
 
     steps:
     - uses: actions/checkout@v4
@@ -122,6 +127,9 @@ jobs:
         - { type: static, shared: NO }
 
     runs-on: ${{ matrix.os }}
+
+    env:
+      APEX_DISABLE: "1"
 
     steps:
     - uses: actions/checkout@v4
