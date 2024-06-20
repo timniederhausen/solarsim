@@ -11,6 +11,7 @@ on:
 
 env:
   VCPKG_COMMIT: "1f124eb6b188994a2e0fb7894690c69e600633ae"
+  VCPKG_ROOT: "${{ github.workspace }}/vcpkg"
 
 jobs:
   lint:
@@ -36,8 +37,10 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Install vcpkg
-      uses: friendlyanon/setup-vcpkg@v1
-      with: { committish: "${{ env.VCPKG_COMMIT }}" }
+      uses: lukka/run-vcpkg@v11
+      with:
+        vcpkgGitCommitId: "${{ env.VCPKG_COMMIT }}"
+        vcpkgDirectory: "${{ env.VCPKG_ROOT }}"
 
     - name: Configure
       run: cmake --preset=ci-sanitize
@@ -95,8 +98,10 @@ jobs:
         sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-17 150
 
     - name: Install vcpkg
-      uses: friendlyanon/setup-vcpkg@v1
-      with: { committish: "${{ env.VCPKG_COMMIT }}" }
+      uses: lukka/run-vcpkg@v11
+      with:
+        vcpkgGitCommitId: "${{ env.VCPKG_COMMIT }}"
+        vcpkgDirectory: "${{ env.VCPKG_ROOT }}"
 
     - name: Setup MultiToolTask
       if: matrix.os == 'windows-2022'
