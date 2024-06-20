@@ -20,8 +20,11 @@ Checks: "*,\
   -readability-static-definition-in-anonymous-namespace,\
   -readability-implicit-bool-conversion,\
   -readability-braces-around-statements,\
+  -readability-convert-member-functions-to-static,\
   -hicpp-braces-around-statements,\
-  -misc-non-private-member-variables-in-classes"
+  -misc-include-cleaner,\
+  -misc-non-private-member-variables-in-classes,
+  -clang-analyzer-security.FloatLoopCounter"
 WarningsAsErrors: ''
 CheckOptions:
   - key: 'bugprone-argument-comment.StrictMode'
