@@ -12,15 +12,20 @@ include(GNUInstallDirs)
 # find_package(<package>) call for consumers to find this project
 set(package SolarSim)
 
+# We need transitive runtime-deps as well!
+# see: https://stackoverflow.com/a/75065206
 set(targets SolarSim_Library)
 if(TARGET SolarSim_cli_std)
   list(APPEND targets SolarSim_cli_std)
+  install(FILES $<TARGET_RUNTIME_DLLS:SolarSim_cli_std> TYPE BIN)
 endif()
 if(TARGET SolarSim_cli_hpx)
   list(APPEND targets SolarSim_cli_hpx)
+  install(FILES $<TARGET_RUNTIME_DLLS:SolarSim_cli_hpx> TYPE BIN)
 endif()
 if(TARGET SolarSim_benchmark)
   list(APPEND targets SolarSim_benchmark)
+  install(FILES $<TARGET_RUNTIME_DLLS:SolarSim_benchmark> TYPE BIN)
 endif()
 
 install(
