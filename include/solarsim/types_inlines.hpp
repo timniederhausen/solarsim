@@ -66,14 +66,14 @@ constexpr triple operator-(const triple& lhs)
   return triple{-lhs.v[0], -lhs.v[1], -lhs.v[2]};
 }
 
-constexpr triple& operator*=(triple& lhs, float rhs)
+constexpr triple& operator*=(triple& lhs, real rhs)
 {
   lhs[0] *= rhs;
   lhs[1] *= rhs;
   lhs[2] *= rhs;
   return lhs;
 }
-constexpr triple& operator/=(triple& lhs, float rhs)
+constexpr triple& operator/=(triple& lhs, real rhs)
 {
   lhs[0] /= rhs;
   lhs[1] /= rhs;
