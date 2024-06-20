@@ -19,4 +19,9 @@ vcpkg_cmake_configure(
 )
 vcpkg_cmake_install()
 
+# post build cleanup
+vcpkg_cmake_config_fixup(CONFIG_PATH lib/cmake/APEX)
+
+file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/include")
+
 vcpkg_fixup_pkgconfig()
