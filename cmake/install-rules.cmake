@@ -12,8 +12,19 @@ include(GNUInstallDirs)
 # find_package(<package>) call for consumers to find this project
 set(package SolarSim)
 
+set(targets SolarSim_Library)
+if(TARGET SolarSim_cli_std)
+  list(APPEND targets SolarSim_cli_std)
+endif()
+if(TARGET SolarSim_cli_hpx)
+  list(APPEND targets SolarSim_cli_hpx)
+endif()
+if(TARGET SolarSim_benchmark)
+  list(APPEND targets SolarSim_benchmark)
+endif()
+
 install(
-    TARGETS SolarSim_Library
+    TARGETS ${targets}
     EXPORT SolarSimTargets
     RUNTIME #
     COMPONENT SolarSim_Runtime
