@@ -28,6 +28,8 @@
 
 SOLARSIM_NS_BEGIN
 
+namespace impl_hpx {
+
 // HPX as of v1.9.1 does not ship with the C++20 concepts for Senders / Receivers.
 // Thankfully we can easily define them ourselves via the provided traits!
 //
@@ -46,6 +48,8 @@ concept sender_of_in = ex::is_sender_of<Sender, Env, Values...>::value;
 
 template <typename Sender, typename... Values>
 concept sender_of = ex::is_sender_of<Sender, ex::empty_env, Values...>::value;
+
+} // namespace impl_hpx
 
 SOLARSIM_NS_END
 

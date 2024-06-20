@@ -32,6 +32,7 @@
 
 SOLARSIM_NS_BEGIN
 
+namespace impl_hpx {
 // These algorithms follow the rules for pipeable sender adaptors
 // see: https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p2300r9.html#spec-execution.senders.adaptor.objects
 //
@@ -156,6 +157,8 @@ inline constexpr struct async_tick_simulation_phase2_t
     });
   }
 } async_tick_simulation_phase2{};
+
+} // namespace impl_hpx
 
 SOLARSIM_NS_END
 

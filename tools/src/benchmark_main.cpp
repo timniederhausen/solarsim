@@ -117,6 +117,8 @@ enum class Scaling
 template <Scaling S>
 static void BM_BH_MT_HPXSenders(benchmark::State& state)
 {
+  using namespace solarsim::impl_hpx;
+
   const solarsim::real duration = FLAGS_duration * (S == Scaling::Weak ? state.range(0) : 1.0);
   auto data                     = solarsim::get_problem();
 
@@ -130,12 +132,12 @@ static void BM_BH_MT_HPXSenders(benchmark::State& state)
       // <barnes hut or naive acceleration update>
       // [parallel] integration step phase 2
 
-      auto snd = solarsim::ex::transfer_just(sched, solarsim::simulation_state_view(data)) |                 //
-                 solarsim::async_tick_simulation_phase1(solarsim::get_dataset_size(data), FLAGS_time_step) | //
-                 solarsim::async_tick_barnes_hut(sched) |                                                    //
-                 solarsim::async_tick_simulation_phase2(solarsim::get_dataset_size(data), FLAGS_time_step);
+      auto snd = ex::transfer_just(sched, solarsim::simulation_state_view(data)) |                 //
+                 async_tick_simulation_phase1(solarsim::get_dataset_size(data), FLAGS_time_step) | //
+                 async_tick_barnes_hut(sched) |                                                    //
+                 async_tick_simulation_phase2(solarsim::get_dataset_size(data), FLAGS_time_step);
 
-      solarsim::tt::sync_wait(std::move(snd)); // wait on this thread to finish
+      tt::sync_wait(std::move(snd)); // wait on this thread to finish
     }
   }
 }
@@ -143,6 +145,8 @@ static void BM_BH_MT_HPXSenders(benchmark::State& state)
 template <Scaling S>
 static void BM_BH_MT_HPXFutures(benchmark::State& state)
 {
+  using namespace solarsim::impl_hpx;
+
   const solarsim::real duration = FLAGS_duration * (S == Scaling::Weak ? state.range(0) : 1.0);
   auto data                     = solarsim::get_problem();
 
@@ -155,12 +159,12 @@ static void BM_BH_MT_HPXFutures(benchmark::State& state)
     for (solarsim::real elapsed = FLAGS_time_step; elapsed < duration; elapsed += FLAGS_time_step) {
       // Task-based parallel execution on our chosen Executor.
       auto our_policy = hpx::execution::par(hpx::execution::task).on(exec);
-      auto future1    = solarsim::impl_hpx::tick_simulation_phase1(our_policy, view, FLAGS_time_step);
+      auto future1    = tick_simulation_phase1(our_policy, view, FLAGS_time_step);
       auto future2    = future1.then([=](hpx::future<void>) {
-        return solarsim::impl_hpx::tick_barnes_hut(our_policy, view);
+        return tick_barnes_hut(our_policy, view);
       });
       auto future3    = future2.then([=](hpx::future<void>) {
-        return solarsim::impl_hpx::tick_simulation_phase2(our_policy, view, FLAGS_time_step);
+        return tick_simulation_phase2(our_policy, view, FLAGS_time_step);
       });
       future3.get(); // wait on this thread to finish
     }

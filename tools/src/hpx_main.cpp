@@ -20,12 +20,15 @@ SOLARSIM_NS_BEGIN
 
 void test_hpx_execution_ops()
 {
+  using namespace impl_hpx;
   const auto [v] = (ex::just(1010) | tt::sync_wait()).value(); // NOLINT(bugprone-unchecked-optional-access)
   assert(v == 1010);
 }
 
 void run_with_senders(const simulation_state_view& state)
 {
+  using namespace impl_hpx;
+  
   // Could use different executors here
   ex::thread_pool_scheduler exec{};
 

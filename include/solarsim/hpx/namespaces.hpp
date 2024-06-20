@@ -29,10 +29,14 @@ namespace hpx::this_thread::experimental {
 
 SOLARSIM_NS_BEGIN
 
+namespace impl_hpx {
+
 // Use common aliases. These names are used by HPX itself (e.g. in test code)
 // see e.g. //libs/core/algorithms/tests/unit/algorithms/rotate_sender.cpp
 namespace ex = hpx::execution::experimental;
 namespace tt = hpx::this_thread::experimental;
+
+} // namespace impl_hpx
 
 SOLARSIM_NS_END
 
