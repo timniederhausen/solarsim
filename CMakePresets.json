@@ -26,7 +26,7 @@
       "name": "vcpkg-win64-static",
       "hidden": true,
       "cacheVariables": {
-        "VCPKG_TARGET_TRIPLET": "x64-windows-static-md"
+        "VCPKG_TARGET_TRIPLET": "x64-windows-static-md-release"
       }
     },
     {
@@ -86,6 +86,7 @@
       "hidden": true,
       "inherits": ["flags-gcc-clang", "ci-std"],
       "cacheVariables": {
+        "VCPKG_TARGET_TRIPLET": "x64-linux-release",
         "CMAKE_BUILD_TYPE": "RelWithDebInfo"
       }
     },
@@ -95,15 +96,16 @@
       "hidden": true,
       "inherits": ["flags-appleclang", "ci-std"],
       "cacheVariables": {
+        "VCPKG_TARGET_TRIPLET": "x64-osx-release",
         "CMAKE_BUILD_TYPE": "RelWithDebInfo"
       }
     },
     {
       "name": "ci-win64",
-      "inherits": ["flags-msvc", "ci-std"],
       "generator": "Visual Studio 17 2022",
       "architecture": "x64",
-      "hidden": true
+      "hidden": true,
+      "inherits": ["flags-msvc", "ci-std"]
     },
     {
       "name": "coverage-linux",
