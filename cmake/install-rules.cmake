@@ -75,6 +75,8 @@ install(
     COMPONENT SolarSim_Development
 )
 
+include(InstallRequiredSystemLibraries)
+
 if(PROJECT_IS_TOP_LEVEL)
   include(CPack)
 endif()
