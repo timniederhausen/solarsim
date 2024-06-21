@@ -11,7 +11,6 @@
   "dependencies": [
     "asio",
     "boost-accumulators",
-    "boost-assign",
     "boost-config",
     "boost-context",
     "boost-dynamic-bitset",
@@ -27,6 +26,10 @@
     "boost-winapi",
     {
       "name": "gperftools",
+      "platform": "linux"
+    },
+    {
+      "name": "apex",
       "platform": "linux"
     },
     "hwloc",

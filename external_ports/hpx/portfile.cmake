@@ -31,10 +31,7 @@ endif()
 
 # Enable APEX on non-Windows
 if(NOT VCPKG_TARGET_IS_WINDOWS)
-    list(APPEND FEATURE_OPTIONS
-        "-DHPX_WITH_APEX=ON"
-        "-DHPX_WITH_FETCH_APEX=ON"
-        "-DHPX_WITH_APEX_TAG=b79dca169421421df3d83814361b2a9b12a8a96d")
+    list(APPEND FEATURE_OPTIONS "-DHPX_WITH_APEX=ON")
 endif()
 
 file(REMOVE "${SOURCE_PATH}/cmake/FindBZip2.cmake") # Outdated
@@ -42,7 +39,6 @@ file(REMOVE "${SOURCE_PATH}/cmake/FindBZip2.cmake") # Outdated
 # see: https://hpx-docs.stellar-group.org/latest/html/manual/cmake_variables.html
 vcpkg_cmake_configure(
     SOURCE_PATH "${SOURCE_PATH}"
-    DISABLE_PARALLEL_CONFIGURE
     OPTIONS
         -DHPX_WITH_VCPKG=ON
         -DHPX_WITH_TESTS=OFF
@@ -62,10 +58,6 @@ vcpkg_cmake_configure(
         # IPVS has big systems
         -DHPX_WITH_MAX_CPU_COUNT=256
         -DVCPKG_HOST_TRIPLET=${_HOST_TRIPLET}
-        # Have this last so it overrides the previous ...=ON
-        # HPX uses FetchContent for some optional features (APEX, ...)
-        # see: https://learn.microsoft.com/en-us/vcpkg/troubleshoot/build-failures#fetchcontent-dependency-is-not-found-during-build-process
-        -DFETCHCONTENT_FULLY_DISCONNECTED=OFF
 )
 vcpkg_cmake_install()
 
