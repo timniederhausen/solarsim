@@ -53,7 +53,9 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: cmake-error-sanitize
-        path: '${{ env.VCPKG_ROOT }}/buildtrees/*/*.log'
+        path: |
+          ${{ env.VCPKG_ROOT }}/buildtrees/*/*.log
+          build/sanitize/vcpkg_installed/*/share
 
     - name: Test
       working-directory: build/sanitize
@@ -129,7 +131,9 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: cmake-error-${{ matrix.os }}-${{ matrix.type }}
-        path: '${{ env.VCPKG_ROOT }}/buildtrees/*/*.log'
+        path: |
+          ${{ env.VCPKG_ROOT }}/buildtrees/*/*.log
+          build/vcpkg_installed/*/share
 
     - name: Test
       working-directory: build
