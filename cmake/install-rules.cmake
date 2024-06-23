@@ -14,22 +14,22 @@ set(package SolarSim)
 
 # We need transitive runtime-deps as well!
 # see: https://stackoverflow.com/a/75065206
-set(targets SolarSim_Library)
+set(exe_targets "")
 if(TARGET SolarSim_cli_std)
-  list(APPEND targets SolarSim_cli_std)
+  list(APPEND exe_targets SolarSim_cli_std)
   install(FILES $<TARGET_RUNTIME_DLLS:SolarSim_cli_std> TYPE BIN)
 endif()
 if(TARGET SolarSim_cli_hpx)
-  list(APPEND targets SolarSim_cli_hpx)
+  list(APPEND exe_targets SolarSim_cli_hpx)
   install(FILES $<TARGET_RUNTIME_DLLS:SolarSim_cli_hpx> TYPE BIN)
 endif()
 if(TARGET SolarSim_benchmark)
-  list(APPEND targets SolarSim_benchmark)
+  list(APPEND exe_targets SolarSim_benchmark)
   install(FILES $<TARGET_RUNTIME_DLLS:SolarSim_benchmark> TYPE BIN)
 endif()
 
 install(
-    TARGETS ${targets}
+    TARGETS SolarSim_Library ${exe_targets}
     EXPORT SolarSimTargets
     RUNTIME #
     COMPONENT SolarSim_Runtime
@@ -41,6 +41,16 @@ install(
     INCLUDES #
     DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
 )
+
+if (NOT WIN32)
+  install(IMPORTED_RUNTIME_ARTIFACTS ${exe_targets} RUNTIME_DEPENDENCY_SET _dependency_set)
+  # FIXME: CONFLICTING_DEPENDENCIES_PREFIX  _conflicts
+  install(
+      RUNTIME_DEPENDENCY_SET _dependency_set
+      PRE_EXCLUDE_REGEXES "api-ms-" "ext-ms-"
+      POST_EXCLUDE_REGEXES "${CMAKE_INSTALL_PREFIX}/lib"
+      RUNTIME DESTINATION lib)
+endif()
 
 write_basic_package_version_file(
     "${package}ConfigVersion.cmake"
