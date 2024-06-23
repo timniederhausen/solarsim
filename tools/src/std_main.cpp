@@ -4,8 +4,10 @@
 #include <solarsim/sync_simulator.hpp>
 #include <solarsim/math.hpp>
 
-#include <fmt/format.h>
+#include <fmt/core.h>
 
+#include <vector>
+#include <string>
 #include <span>
 
 SOLARSIM_NS_BEGIN

@@ -12,8 +12,8 @@
 ///
 /// You should have received a copy of the GNU General Public License
 /// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#ifndef SOLARSIM_HPX_ASYNCSIMULATORSENDER_HPP
-#define SOLARSIM_HPX_ASYNCSIMULATORSENDER_HPP
+#ifndef SOLARSIM_STDEXEC_ASYNCSIMULATORSENDER_HPP
+#define SOLARSIM_STDEXEC_ASYNCSIMULATORSENDER_HPP
 
 #include "solarsim/detail/config.hpp"
 
@@ -21,18 +21,18 @@
 #  pragma once
 #endif
 
-#include "solarsim/hpx/execution_concepts.hpp"
+#include "solarsim/stdexec/namespaces.hpp"
 #include "solarsim/simulation_state.hpp"
 // Logic fragments come from the sync simulators:
 #include "solarsim/barnes_hut_octree.hpp"
 #include "solarsim/sync_simulator.hpp"
 
-#include <hpx/execution/algorithms/bulk.hpp>
-#include <hpx/execution/algorithms/let_value.hpp>
+#include <stdexec/execution.hpp>
 
 SOLARSIM_NS_BEGIN
 
-namespace impl_hpx {
+namespace impl_std {
+
 // These algorithms follow the rules for pipeable sender adaptors
 // see: https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p2300r9.html#spec-execution.senders.adaptor.objects
 //
@@ -42,7 +42,7 @@ namespace impl_hpx {
 
 inline constexpr struct async_tick_naive_t
 {
-  constexpr auto operator()() const
+  auto operator()() const
   {
     return ex::then([](any_simulation_state auto&& state) {
       naive_sync_simulator_impl().tick(state.body_positions, state.body_masses, state.softening_factor,
@@ -51,8 +51,8 @@ inline constexpr struct async_tick_naive_t
     });
   }
 
-  template <sender Sender>
-  constexpr auto operator()(Sender&& sender) const
+  template <ex::sender Sender>
+  auto operator()(Sender&& sender) const
   {
     return ex::then(std::forward<Sender>(sender), [](any_simulation_state auto&& state) {
       naive_sync_simulator_impl().tick(state.body_positions, state.body_masses, state.softening_factor,
@@ -64,7 +64,7 @@ inline constexpr struct async_tick_naive_t
 
 inline constexpr struct async_tick_barnes_hut_t
 {
-  constexpr auto operator()(auto sch) const
+  auto operator()(auto sch) const
   {
     return ex::let_value([sch](any_simulation_state auto&& state) {
       std::fill(state.acceleration.begin(), state.acceleration.end(), triple{});
@@ -77,14 +77,14 @@ inline constexpr struct async_tick_barnes_hut_t
                       [](std::size_t i, any_simulation_state auto& state, const barnes_hut_octree& octree) {
                         octree.apply_forces_to(state.body_positions[i], state.softening_factor, state.acceleration[i]);
                       }) |
-             ex::then([=](any_simulation_state auto&& state, const barnes_hut_octree&) {
+             ex::then([](any_simulation_state auto&& state, const barnes_hut_octree&) {
                return std::move(state);
              });
     });
   }
 
-  template <sender Sender>
-  constexpr auto operator()(Sender&& sender, auto sch, const std::size_t& num_bodies) const
+  template <ex::sender Sender>
+  auto operator()(Sender&& sender, auto sch, const std::size_t& num_bodies) const
   {
     return ex::let_value(std::forward<Sender>(sender), [sch](any_simulation_state auto&& state) {
       std::fill(state.acceleration.begin(), state.acceleration.end(), triple{});
@@ -97,7 +97,7 @@ inline constexpr struct async_tick_barnes_hut_t
                       [](std::size_t i, any_simulation_state auto& state, const barnes_hut_octree& octree) {
                         octree.apply_forces_to(state.body_positions[i], state.softening_factor, state.acceleration[i]);
                       }) |
-             ex::then([=](any_simulation_state auto&& state, const barnes_hut_octree&) {
+             ex::then([](any_simulation_state auto&& state, const barnes_hut_octree&) {
                return std::move(state);
              });
     });
@@ -106,7 +106,7 @@ inline constexpr struct async_tick_barnes_hut_t
 
 inline constexpr struct async_tick_simulation_phase1_t
 {
-  constexpr auto operator()(const std::size_t& num_bodies, real dT) const
+  auto operator()(const std::size_t& num_bodies, real dT) const
   {
     return ex::bulk(num_bodies, [=](std::size_t i, any_simulation_state auto& state) {
       if constexpr (true) {
@@ -118,8 +118,8 @@ inline constexpr struct async_tick_simulation_phase1_t
     });
   }
 
-  template <sender Sender>
-  constexpr auto operator()(Sender&& sender, const std::size_t& num_bodies, real dT) const
+  template <ex::sender Sender>
+  auto operator()(Sender&& sender, const std::size_t& num_bodies, real dT) const
   {
     return ex::bulk(std::forward<Sender>(sender), num_bodies, [=](std::size_t i, any_simulation_state auto& state) {
       if constexpr (true) {
@@ -134,7 +134,7 @@ inline constexpr struct async_tick_simulation_phase1_t
 
 inline constexpr struct async_tick_simulation_phase2_t
 {
-  constexpr auto operator()(const std::size_t& num_bodies, real dT) const
+  auto operator()(const std::size_t& num_bodies, real dT) const
   {
     return ex::bulk(num_bodies, [=](std::size_t i, any_simulation_state auto& state) {
       if constexpr (true) {
@@ -145,8 +145,8 @@ inline constexpr struct async_tick_simulation_phase2_t
     });
   }
 
-  template <sender Sender>
-  constexpr auto operator()(Sender&& sender, const std::size_t& num_bodies, real dT) const
+  template <ex::sender Sender>
+  auto operator()(Sender&& sender, const std::size_t& num_bodies, real dT) const
   {
     return ex::bulk(std::forward<Sender>(sender), num_bodies, [=](std::size_t i, any_simulation_state auto& state) {
       if constexpr (true) {
@@ -158,7 +158,7 @@ inline constexpr struct async_tick_simulation_phase2_t
   }
 } async_tick_simulation_phase2{};
 
-} // namespace impl_hpx
+} // namespace impl_std
 
 SOLARSIM_NS_END
 

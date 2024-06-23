@@ -50,6 +50,8 @@ void run_with_senders(const simulation_state_view& state)
 
 void run_with_parallel_algorithms(const simulation_state_view& state)
 {
+  using namespace impl_hpx;
+  
   // We have quite a few executors to choose from:
   hpx::execution::parallel_executor par;
   hpx::execution::parallel_executor par_nostack(hpx::threads::thread_priority::default_,
@@ -60,13 +62,13 @@ void run_with_parallel_algorithms(const simulation_state_view& state)
   for (real elapsed = time_step; elapsed < year_in_seconds; elapsed += time_step) {
     // Task-based parallel execution on our chosen Executor.
     auto our_policy = hpx::execution::par(hpx::execution::task).on(sched_exec_tps);
-    auto future1    = impl_hpx::tick_simulation_phase1(our_policy, state, time_step);
+    auto future1    = tick_simulation_phase1(our_policy, state, time_step);
     auto future2    = future1.then([=](hpx::future<void>) {
       barnes_hut_sync_simulator_impl().tick(state.body_positions, state.body_masses, state.softening_factor,
                                                state.acceleration);
     });
     auto future3    = future2.then([=](hpx::future<void>) {
-      return impl_hpx::tick_simulation_phase2(our_policy, state, time_step);
+      return tick_simulation_phase2(our_policy, state, time_step);
     });
     future3.get(); // wait on this thread to finish
   }

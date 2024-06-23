@@ -2,9 +2,12 @@
 #include "solarsim/sync_simulator.hpp"
 #include "solarsim/hpx/async_simulator.hpp"
 #include "solarsim/hpx/async_simulator_sender.hpp"
+#include "solarsim/stdexec/async_simulator_sender.hpp"
 
 #include <solarsim/body_definition_csv.hpp>
 #include <solarsim/simulation_state.hpp>
+
+#include <exec/static_thread_pool.hpp>
 
 #include <hpx/algorithm.hpp>
 #include <hpx/execution.hpp>
@@ -142,6 +145,50 @@ static void BM_BH_MT_HPXSenders(benchmark::State& state)
   }
 }
 
+struct hpx_suspender
+{
+  hpx_suspender(hpx::runtime* rt)
+    : rt_(rt)
+  {
+    hpx::suspend();
+  }
+  ~hpx_suspender() { hpx::resume(); }
+
+private:
+  hpx::runtime* rt_;
+};
+
+template <Scaling S>
+static void BM_BH_MT_STDSenders(benchmark::State& state)
+{
+  using namespace solarsim::impl_std;
+
+  const solarsim::real duration = FLAGS_duration * (S == Scaling::Weak ? state.range(0) : 1.0);
+  auto data                     = solarsim::get_problem();
+
+  // Create a thread pool and get a scheduler from it
+  exec::static_thread_pool pool(state.range(0));
+  ex::scheduler auto sched = pool.get_scheduler();
+
+  for (auto _ : state) {
+    for (solarsim::real elapsed = FLAGS_time_step; elapsed < duration; elapsed += FLAGS_time_step) {
+      // Very basic way of chaining these algorithms together to end up with:
+      // [parallel] integration step phase 1
+      // <barnes hut or naive acceleration update>
+      // [parallel] integration step phase 2
+
+      auto snd = ex::transfer_just(sched, solarsim::simulation_state_view(data)) |                 //
+                 async_tick_simulation_phase1(solarsim::get_dataset_size(data), FLAGS_time_step) | //
+                 async_tick_barnes_hut(sched) |                                                    //
+                 async_tick_simulation_phase2(solarsim::get_dataset_size(data), FLAGS_time_step);
+
+      tt::sync_wait(std::move(snd)); // wait on this thread to finish
+    }
+  }
+
+  pool.request_stop();
+}
+
 template <Scaling S>
 static void BM_BH_MT_HPXFutures(benchmark::State& state)
 {
@@ -191,10 +238,12 @@ int hpx_main(int argc, char** argv)
   // strong scaling first
   SOLARSIM_BENCHMARK(BM_BH_MT_HPXSenders<Scaling::Strong>);
   SOLARSIM_BENCHMARK(BM_BH_MT_HPXSenders<Scaling::Strong>);
+  SOLARSIM_BENCHMARK(BM_BH_MT_STDSenders<Scaling::Strong>);
 
   // then weak scaling
   SOLARSIM_BENCHMARK(BM_BH_MT_HPXFutures<Scaling::Weak>);
   SOLARSIM_BENCHMARK(BM_BH_MT_HPXSenders<Scaling::Weak>);
+  SOLARSIM_BENCHMARK(BM_BH_MT_STDSenders<Scaling::Weak>);
 
 #undef SOLARSIM_BENCHMARK
 

@@ -43,6 +43,12 @@ target_link_libraries(SolarSim_Library PRIVATE fmt::fmt)
 find_package(Boost REQUIRED COMPONENTS system)
 target_link_libraries(SolarSim_Library PUBLIC Boost::boost Boost::system)
 
+if(WIN32)
+  # Otherwise our stdexec users end up with errors like those:
+  # include\exec\__detail\__bwos_lifo_queue.hpp: std::max(static_cast<size_t>(2)
+  target_compile_definitions(SolarSim_Library PUBLIC NOMINMAX)
+endif()
+
 # TODO: seperate library for HPX executor?
 find_package(HPX)
 if(HPX_FOUND)
