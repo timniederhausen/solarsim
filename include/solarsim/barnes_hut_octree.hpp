@@ -31,6 +31,8 @@ SOLARSIM_NS_BEGIN
 
 struct barnes_hut_octree_node
 {
+  barnes_hut_octree_node() = default;
+
   constexpr barnes_hut_octree_node(const triple& position, real length)
     : position(position)
     , length(length)
@@ -68,13 +70,14 @@ private:
 class barnes_hut_octree
 {
 public:
+  barnes_hut_octree() = default;
   barnes_hut_octree(std::span<const triple> body_positions, std::span<const real> body_masses);
 
   void apply_forces_to(const triple& body_position, real softening, triple& acceleration) const;
 
 private:
-  axis_aligned_bounding_box bounds_;
-  barnes_hut_octree_node root_;
+  axis_aligned_bounding_box bounds_ = {};
+  barnes_hut_octree_node root_      = {};
 };
 
 SOLARSIM_NS_END
