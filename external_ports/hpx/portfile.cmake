@@ -64,6 +64,8 @@ vcpkg_cmake_configure(
         -DHPX_WITH_VERIFY_LOCKS_BACKTRACE=ON
         # IPVS has big systems
         -DHPX_WITH_MAX_CPU_COUNT=256
+        # We are usually starved, especially if actually running in other runtimes (e.g. TBB, stdexec)
+        -DHPX_THREAD_BACKOFF_ON_IDLE=ON
         -DVCPKG_HOST_TRIPLET=${_HOST_TRIPLET}
 )
 vcpkg_cmake_install()
