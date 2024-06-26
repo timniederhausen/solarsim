@@ -236,7 +236,7 @@ int hpx_main(int argc, char** argv)
 #define SOLARSIM_BENCHMARK(function_name) register_solarsim_benchmark(#function_name, &function_name)
 
   // strong scaling first
-  SOLARSIM_BENCHMARK(BM_BH_MT_HPXSenders<Scaling::Strong>);
+  SOLARSIM_BENCHMARK(BM_BH_MT_HPXFutures<Scaling::Strong>);
   SOLARSIM_BENCHMARK(BM_BH_MT_HPXSenders<Scaling::Strong>);
   SOLARSIM_BENCHMARK(BM_BH_MT_STDSenders<Scaling::Strong>);
 
