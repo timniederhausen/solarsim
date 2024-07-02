@@ -1,87 +1,17 @@
-#include "dataset_conversion.hpp"
+#include "benchmark_common.hpp"
 #include "solarsim/sync_simulator.hpp"
 #include "solarsim/hpx/async_simulator.hpp"
 #include "solarsim/hpx/async_simulator_sender.hpp"
-#include "solarsim/stdexec/async_simulator_sender.hpp"
 
-#include <solarsim/body_definition_csv.hpp>
 #include <solarsim/simulation_state.hpp>
-
-#include <exec/static_thread_pool.hpp>
 
 #include <hpx/algorithm.hpp>
 #include <hpx/execution.hpp>
 #include <hpx/init.hpp>
 
-// Enable optional spirit debugging
-// #define BOOST_SPIRIT_DEBUG
-#include <boost/spirit/home/x3.hpp>
-
 #include <benchmark/benchmark.h>
-#include <gflags/gflags.h>
-
-inline constexpr boost::spirit::x3::rule<class number_list_tag, std::vector<int>> thread_list = "thread_list";
-inline constexpr auto thread_list_def = -(boost::spirit::x3::int_ % ',');
-BOOST_SPIRIT_DEFINE(thread_list);
-
-static std::vector<int> threads_to_benchmark;
-bool parse_threads(const char* flagname, const std::string& value)
-{
-  (void)flagname;
-  auto iter = value.begin();
-  return phrase_parse(iter, value.end(), thread_list_def, boost::spirit::x3::space, threads_to_benchmark);
-}
-
-DEFINE_double(time_step, 60 * 60, "Time between simulation steps (in s)");
-DEFINE_double(duration, (60 * 60) * 15, "Total duration of the simulation (in s)");
-DEFINE_string(dataset, "dataset/scenario1_state_vectors.csv", "Path to the input state vectors");
-DEFINE_string(threads, "2,4,8,16", "Number of threads to test");
-DEFINE_validator(threads, &parse_threads);
 
 SOLARSIM_NS_BEGIN
-
-// Helper type to own our simulation dataset
-template <typename DatasetPolicy>
-struct benchmark_simulator_data
-{
-  benchmark_simulator_data(const std::string& filename, bool need_norm)
-  {
-    auto dataset = load_from_csv_file(filename);
-
-    if (need_norm) {
-      for (auto& body : dataset)
-        DatasetPolicy::normalize_body_values(body);
-    }
-    adjust_initial_velocities(dataset);
-
-    // Next, decompose the bodies into what we need!
-    // Our algorithms are decoupled from the body_definition type.
-    state.body_positions.resize(dataset.size());
-    state.body_velocities.resize(dataset.size());
-    state.body_masses.resize(dataset.size());
-    state.acceleration.resize(dataset.size());
-    state.softening_factor = .05;
-
-    for (std::size_t i = 0, n = dataset.size(); i != n; ++i) {
-      state.body_positions[i]  = dataset[i].position;
-      state.body_velocities[i] = dataset[i].velocity;
-      state.body_masses[i]     = dataset[i].mass;
-    }
-  }
-
-  simulation_state state;
-};
-
-static const simulation_state& get_problem()
-{
-  // <static const> gives us "free" on-demand thread safe init for our static dataset
-  // Dataset selection:
-  // static const benchmark_simulator_data<ipvs_dataset> d("planets_and_moons_state_vectors.csv", true);
-  static const benchmark_simulator_data<ipvs_dataset> d(FLAGS_dataset, true);
-  return d.state;
-}
-
-SOLARSIM_NS_END
 
 //
 // Benchmark harnesses
@@ -107,15 +37,6 @@ static void BM_BH_ST(benchmark::State& state)
   }
 }
 BENCHMARK(BM_BH_ST);
-
-// Multithreaded:
-enum class Scaling
-{
-  // i.e. fixed work per thread
-  Weak,
-  // i.e. fixed work over all threads
-  Strong
-};
 
 template <Scaling S>
 static void BM_BH_MT_HPXSenders(benchmark::State& state)
@@ -143,50 +64,6 @@ static void BM_BH_MT_HPXSenders(benchmark::State& state)
       tt::sync_wait(std::move(snd)); // wait on this thread to finish
     }
   }
-}
-
-struct hpx_suspender
-{
-  hpx_suspender(hpx::runtime* rt)
-    : rt_(rt)
-  {
-    hpx::suspend();
-  }
-  ~hpx_suspender() { hpx::resume(); }
-
-private:
-  hpx::runtime* rt_;
-};
-
-template <Scaling S>
-static void BM_BH_MT_STDSenders(benchmark::State& state)
-{
-  using namespace solarsim::impl_std;
-
-  const solarsim::real duration = FLAGS_duration * (S == Scaling::Weak ? state.range(0) : 1.0);
-  auto data                     = solarsim::get_problem();
-
-  // Create a thread pool and get a scheduler from it
-  exec::static_thread_pool pool(state.range(0));
-  ex::scheduler auto sched = pool.get_scheduler();
-
-  for (auto _ : state) {
-    for (solarsim::real elapsed = FLAGS_time_step; elapsed < duration; elapsed += FLAGS_time_step) {
-      // Very basic way of chaining these algorithms together to end up with:
-      // [parallel] integration step phase 1
-      // <barnes hut or naive acceleration update>
-      // [parallel] integration step phase 2
-
-      auto snd = ex::transfer_just(sched, solarsim::simulation_state_view(data)) |                 //
-                 async_tick_simulation_phase1(solarsim::get_dataset_size(data), FLAGS_time_step) | //
-                 async_tick_barnes_hut(sched) |                                                    //
-                 async_tick_simulation_phase2(solarsim::get_dataset_size(data), FLAGS_time_step);
-
-      tt::sync_wait(std::move(snd)); // wait on this thread to finish
-    }
-  }
-
-  pool.request_stop();
 }
 
 template <Scaling S>
@@ -218,15 +95,6 @@ static void BM_BH_MT_HPXFutures(benchmark::State& state)
   }
 }
 
-using benchmark_function_type = void(benchmark::State&);
-
-void register_solarsim_benchmark(const std::string& name, benchmark_function_type function)
-{
-  const auto registration = benchmark::RegisterBenchmark(name, function)->UseRealTime()->MeasureProcessCPUTime();
-  for (auto num_threads : threads_to_benchmark)
-    registration->Arg(num_threads);
-}
-
 int hpx_main(int argc, char** argv)
 {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
@@ -238,12 +106,10 @@ int hpx_main(int argc, char** argv)
   // strong scaling first
   SOLARSIM_BENCHMARK(BM_BH_MT_HPXFutures<Scaling::Strong>);
   SOLARSIM_BENCHMARK(BM_BH_MT_HPXSenders<Scaling::Strong>);
-  SOLARSIM_BENCHMARK(BM_BH_MT_STDSenders<Scaling::Strong>);
 
   // then weak scaling
   SOLARSIM_BENCHMARK(BM_BH_MT_HPXFutures<Scaling::Weak>);
   SOLARSIM_BENCHMARK(BM_BH_MT_HPXSenders<Scaling::Weak>);
-  SOLARSIM_BENCHMARK(BM_BH_MT_STDSenders<Scaling::Weak>);
 
 #undef SOLARSIM_BENCHMARK
 
@@ -272,3 +138,5 @@ extern "C" int main(int argc, char* argv[])
   init_args.cfg = cfg;
   return hpx::local::init(&hpx_main, argc, argv, init_args);
 }
+
+SOLARSIM_NS_END
