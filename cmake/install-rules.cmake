@@ -27,6 +27,10 @@ if(TARGET SolarSim_benchmark)
   list(APPEND exe_targets SolarSim_benchmark)
   install(FILES $<TARGET_RUNTIME_DLLS:SolarSim_benchmark> TYPE BIN)
 endif()
+if(TARGET SolarSim_benchmark_std)
+  list(APPEND exe_targets SolarSim_benchmark_std)
+  install(FILES $<TARGET_RUNTIME_DLLS:SolarSim_benchmark_std> TYPE BIN)
+endif()
 
 install(
     TARGETS SolarSim_Library ${exe_targets}

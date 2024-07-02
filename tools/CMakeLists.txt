@@ -27,14 +27,27 @@ if(HPX_FOUND AND stdexec_FOUND)
 endif()
 
 # Benchmark tool
-if(HPX_FOUND AND stdexec_FOUND AND benchmark_FOUND AND gflags_FOUND)
+if(HPX_FOUND AND benchmark_FOUND AND gflags_FOUND)
   add_executable(
       SolarSim_benchmark
       src/dataset_conversion.hpp
+      src/benchmark_common.hpp
       src/benchmark_main.cpp
   )
   target_link_libraries(SolarSim_benchmark
     PUBLIC SolarSim_Library
-    PRIVATE fmt::fmt HPX::hpx HPX::wrap_main HPX::iostreams_component STDEXEC::stdexec benchmark::benchmark gflags::gflags
+    PRIVATE fmt::fmt HPX::hpx HPX::iostreams_component benchmark::benchmark gflags::gflags
+  )
+endif()
+if(stdexec_FOUND AND benchmark_FOUND AND gflags_FOUND)
+  add_executable(
+      SolarSim_benchmark_std
+      src/dataset_conversion.hpp
+      src/benchmark_common.hpp
+      src/benchmark_main_std.cpp
+  )
+  target_link_libraries(SolarSim_benchmark_std
+    PUBLIC SolarSim_Library
+    PRIVATE fmt::fmt HPX::hpx STDEXEC::stdexec benchmark::benchmark gflags::gflags
   )
 endif()
