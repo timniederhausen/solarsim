@@ -20,20 +20,26 @@ SOLARSIM_NS_BEGIN
 // Singlethreaded:
 static void BM_Naive_ST(benchmark::State& state)
 {
-  auto data = solarsim::get_problem();
-  for (auto _ : state) {
-    solarsim::naive_sync_simulator simulator(data.body_positions, data.body_velocities, data.body_masses, .05);
+  auto data = get_problem();
+  auto impl = [&]() {
+    naive_sync_simulator simulator(data.body_positions, data.body_velocities, data.body_masses, .05);
     run_simulation(simulator, FLAGS_time_step, FLAGS_duration);
+  };
+  for (auto _ : state) {
+    hpx::async(hpx::launch::sync, hpx::annotated_function(impl, "BM_Naive_ST"));
   }
 }
 BENCHMARK(BM_Naive_ST);
 
 static void BM_BH_ST(benchmark::State& state)
 {
-  auto data = solarsim::get_problem();
-  for (auto _ : state) {
-    solarsim::barnes_hut_sync_simulator simulator(data.body_positions, data.body_velocities, data.body_masses, .05);
+  auto data = get_problem();
+  auto impl = [&]() {
+    barnes_hut_sync_simulator simulator(data.body_positions, data.body_velocities, data.body_masses, .05);
     run_simulation(simulator, FLAGS_time_step, FLAGS_duration);
+  };
+  for (auto _ : state) {
+    hpx::async(hpx::launch::sync, hpx::annotated_function(impl, "BM_BH_ST"));
   }
 }
 BENCHMARK(BM_BH_ST);
@@ -43,26 +49,29 @@ static void BM_BH_MT_HPXSenders(benchmark::State& state)
 {
   using namespace solarsim::impl_hpx;
 
-  const solarsim::real duration = FLAGS_duration * (S == Scaling::Weak ? state.range(0) : 1.0);
-  auto data                     = solarsim::get_problem();
+  const real duration = FLAGS_duration * (S == Scaling::Weak ? state.range(0) : 1.0);
+  auto data           = get_problem();
 
   auto sched = hpx::parallel::execution::with_processing_units_count(
       hpx::execution::experimental::thread_pool_scheduler{}, state.range(0));
 
-  for (auto _ : state) {
-    for (solarsim::real elapsed = FLAGS_time_step; elapsed < duration; elapsed += FLAGS_time_step) {
+  auto impl = [&]() {
+    for (real elapsed = FLAGS_time_step; elapsed < duration; elapsed += FLAGS_time_step) {
       // Very basic way of chaining these algorithms together to end up with:
       // [parallel] integration step phase 1
       // <barnes hut or naive acceleration update>
       // [parallel] integration step phase 2
 
-      auto snd = ex::transfer_just(sched, solarsim::simulation_state_view(data)) |                 //
-                 async_tick_simulation_phase1(solarsim::get_dataset_size(data), FLAGS_time_step) | //
-                 async_tick_barnes_hut(sched) |                                                    //
+      auto snd = ex::transfer_just(sched, solarsim::simulation_state_view(data)) |
+                 async_tick_simulation_phase1(solarsim::get_dataset_size(data), FLAGS_time_step) |
+                 async_tick_barnes_hut(sched) |
                  async_tick_simulation_phase2(solarsim::get_dataset_size(data), FLAGS_time_step);
 
       tt::sync_wait(std::move(snd)); // wait on this thread to finish
     }
+  };
+  for (auto _ : state) {
+    hpx::async(hpx::launch::sync, hpx::annotated_function(impl, "BM_BH_MT_HPXSenders"));
   }
 }
 
@@ -71,16 +80,16 @@ static void BM_BH_MT_HPXFutures(benchmark::State& state)
 {
   using namespace solarsim::impl_hpx;
 
-  const solarsim::real duration = FLAGS_duration * (S == Scaling::Weak ? state.range(0) : 1.0);
-  auto data                     = solarsim::get_problem();
+  const real duration = FLAGS_duration * (S == Scaling::Weak ? state.range(0) : 1.0);
+  auto data           = get_problem();
 
   auto exec = hpx::parallel::execution::with_processing_units_count(
       hpx::execution::experimental::scheduler_executor<hpx::execution::experimental::thread_pool_scheduler>{},
       state.range(0));
 
-  for (auto _ : state) {
-    auto view = solarsim::simulation_state_view(data);
-    for (solarsim::real elapsed = FLAGS_time_step; elapsed < duration; elapsed += FLAGS_time_step) {
+  auto impl = [&]() {
+    auto view = simulation_state_view(data);
+    for (real elapsed = FLAGS_time_step; elapsed < duration; elapsed += FLAGS_time_step) {
       // Task-based parallel execution on our chosen Executor.
       auto our_policy = hpx::execution::par(hpx::execution::task).on(exec);
       auto future1    = tick_simulation_phase1(our_policy, view, FLAGS_time_step);
@@ -92,6 +101,9 @@ static void BM_BH_MT_HPXFutures(benchmark::State& state)
       });
       future3.get(); // wait on this thread to finish
     }
+  };
+  for (auto _ : state) {
+    hpx::async(hpx::launch::sync, hpx::annotated_function(impl, "BM_BH_MT_HPXFutures"));
   }
 }
 

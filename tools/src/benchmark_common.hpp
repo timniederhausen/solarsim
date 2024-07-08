@@ -47,11 +47,10 @@ DEFINE_double(duration, (60 * 60) * 15, "Total duration of the simulation (in s)
 DEFINE_string(dataset, "dataset/scenario1_state_vectors.csv", "Path to the input state vectors");
 DEFINE_string(threads, "2,4,8,16", "Number of threads to test");
 DEFINE_validator(threads, &parse_threads);
-static std::vector<int> FLAGS_threads_v;
+static std::vector<int> FLAGS_threads_v; // FLAGS_threads is just a string!
 
-bool parse_threads(const char* flagname, const std::string& value)
+inline bool parse_threads(const char* /*flagname*/, const std::string& value)
 {
-  (void)flagname;
   auto iter = value.begin();
   return phrase_parse(iter, value.end(), -(boost::spirit::x3::int_ % ','), boost::spirit::x3::space, FLAGS_threads_v);
 }
