@@ -51,6 +51,7 @@ auto tick_barnes_hut(ExPolicy&& policy, any_simulation_state auto&& state)
   std::fill(state.acceleration.begin(), state.acceleration.end(), triple{});
 
   // Ugh, our function needs to be copyable. Just make it a shared ptr then!
+  // Compared to the work we're performing, the cost is negligible.
   auto shared_octree = std::make_shared<barnes_hut_octree>(state.body_positions, state.body_masses);
   return hpx::experimental::for_loop_n(
       std::forward<ExPolicy>(policy), std::size_t(), get_dataset_size(state), [=](std::size_t i) {

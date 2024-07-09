@@ -45,6 +45,7 @@ inline constexpr struct async_tick_naive_t
   constexpr auto operator()() const
   {
     return ex::then([](any_simulation_state auto&& state) {
+      hpx::scoped_annotation annotation("async_tick_naive");
       naive_sync_simulator_impl().tick(state.body_positions, state.body_masses, state.softening_factor,
                                        state.acceleration);
       return std::move(state);
@@ -55,6 +56,7 @@ inline constexpr struct async_tick_naive_t
   constexpr auto operator()(Sender&& sender) const
   {
     return ex::then(std::forward<Sender>(sender), [](any_simulation_state auto&& state) {
+      hpx::scoped_annotation annotation("async_tick_naive");
       naive_sync_simulator_impl().tick(state.body_positions, state.body_masses, state.softening_factor,
                                        state.acceleration);
       return std::move(state);
@@ -67,6 +69,7 @@ inline constexpr struct async_tick_barnes_hut_t
   constexpr auto operator()(auto sch) const
   {
     return ex::let_value([sch](any_simulation_state auto&& state) {
+      hpx::scoped_annotation annotation("async_tick_barnes_hut");
       std::fill(state.acceleration.begin(), state.acceleration.end(), triple{});
 
       barnes_hut_octree octree(state.body_positions, state.body_masses);
@@ -75,6 +78,7 @@ inline constexpr struct async_tick_barnes_hut_t
       return ex::transfer_just(sch, std::move(state), std::move(octree)) |
              ex::bulk(n,
                       [](std::size_t i, any_simulation_state auto& state, const barnes_hut_octree& octree) {
+                        hpx::scoped_annotation annotation("async_tick_barnes_hut::apply_forces_to");
                         octree.apply_forces_to(state.body_positions[i], state.softening_factor, state.acceleration[i]);
                       }) |
              ex::then([=](any_simulation_state auto&& state, const barnes_hut_octree&) {
@@ -87,6 +91,7 @@ inline constexpr struct async_tick_barnes_hut_t
   constexpr auto operator()(Sender&& sender, auto sch, const std::size_t& num_bodies) const
   {
     return ex::let_value(std::forward<Sender>(sender), [sch](any_simulation_state auto&& state) {
+      hpx::scoped_annotation annotation("async_tick_barnes_hut");
       std::fill(state.acceleration.begin(), state.acceleration.end(), triple{});
 
       barnes_hut_octree octree(state.body_positions, state.body_masses);
@@ -95,6 +100,7 @@ inline constexpr struct async_tick_barnes_hut_t
       return ex::transfer_just(sch, std::move(state), std::move(octree)) |
              ex::bulk(n,
                       [](std::size_t i, any_simulation_state auto& state, const barnes_hut_octree& octree) {
+                        hpx::scoped_annotation annotation("async_tick_barnes_hut::apply_forces_to");
                         octree.apply_forces_to(state.body_positions[i], state.softening_factor, state.acceleration[i]);
                       }) |
              ex::then([=](any_simulation_state auto&& state, const barnes_hut_octree&) {
@@ -109,6 +115,7 @@ inline constexpr struct async_tick_simulation_phase1_t
   constexpr auto operator()(const std::size_t& num_bodies, real dT) const
   {
     return ex::bulk(num_bodies, [=](std::size_t i, any_simulation_state auto& state) {
+      hpx::scoped_annotation annotation("async_tick_simulation_phase1");
       if constexpr (true) {
         integrate_leapfrog_phase1(state.body_positions[i], state.body_velocities[i], dT);
       } else {
@@ -122,6 +129,7 @@ inline constexpr struct async_tick_simulation_phase1_t
   constexpr auto operator()(Sender&& sender, const std::size_t& num_bodies, real dT) const
   {
     return ex::bulk(std::forward<Sender>(sender), num_bodies, [=](std::size_t i, any_simulation_state auto& state) {
+      hpx::scoped_annotation annotation("async_tick_simulation_phase1");
       if constexpr (true) {
         integrate_leapfrog_phase1(state.body_positions[i], state.body_velocities[i], dT);
       } else {
@@ -137,6 +145,7 @@ inline constexpr struct async_tick_simulation_phase2_t
   constexpr auto operator()(const std::size_t& num_bodies, real dT) const
   {
     return ex::bulk(num_bodies, [=](std::size_t i, any_simulation_state auto& state) {
+      hpx::scoped_annotation annotation("async_tick_simulation_phase2");
       if constexpr (true) {
         integrate_leapfrog_phase2(state.body_positions[i], state.body_velocities[i], state.acceleration[i], dT);
       } else {
@@ -149,6 +158,7 @@ inline constexpr struct async_tick_simulation_phase2_t
   constexpr auto operator()(Sender&& sender, const std::size_t& num_bodies, real dT) const
   {
     return ex::bulk(std::forward<Sender>(sender), num_bodies, [=](std::size_t i, any_simulation_state auto& state) {
+      hpx::scoped_annotation annotation("async_tick_simulation_phase2");
       if constexpr (true) {
         integrate_leapfrog_phase2(state.body_positions[i], state.body_velocities[i], state.acceleration[i], dT);
       } else {

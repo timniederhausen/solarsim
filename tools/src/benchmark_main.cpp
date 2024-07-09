@@ -92,13 +92,20 @@ static void BM_BH_MT_HPXFutures(benchmark::State& state)
     for (real elapsed = FLAGS_time_step; elapsed < duration; elapsed += FLAGS_time_step) {
       // Task-based parallel execution on our chosen Executor.
       auto our_policy = hpx::execution::par(hpx::execution::task).on(exec);
-      auto future1    = tick_simulation_phase1(our_policy, view, FLAGS_time_step);
-      auto future2    = future1.then([=](hpx::future<void>) {
-        return tick_barnes_hut(our_policy, view);
-      });
-      auto future3    = future2.then([=](hpx::future<void>) {
-        return tick_simulation_phase2(our_policy, view, FLAGS_time_step);
-      });
+      auto future1    = ([&] {
+        hpx::scoped_annotation annotation("tick_simulation_phase1");
+        return tick_simulation_phase1(our_policy, view, FLAGS_time_step);
+      })();
+      auto future2    = future1.then(hpx::annotated_function(
+          [=](hpx::future<void>) {
+            return tick_barnes_hut(our_policy, view);
+          },
+          "tick_barnes_hut"));
+      auto future3    = future2.then(hpx::annotated_function(
+          [=](hpx::future<void>) {
+            return tick_simulation_phase2(our_policy, view, FLAGS_time_step);
+          },
+          "tick_simulation_phase2"));
       future3.get(); // wait on this thread to finish
     }
   };
