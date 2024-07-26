@@ -78,6 +78,8 @@ real calculate_potential_energy(real unadjusted_mass_i, real unadjusted_mass_j, 
 
 // Data validation
 #if defined(_DEBUG)
+bool almost_equal_ulps(real a, real b, int max_ulps_diff = 4);
+bool almost_equal_ulps(const triple& a, const triple& b, int max_ulps_diff = 4);
 void debug_validate_finite(const triple& v);
 #else
 constexpr void debug_validate_finite(const triple&)

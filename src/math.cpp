@@ -139,6 +139,30 @@ real calculate_potential_energy(real unadjusted_mass_i, real unadjusted_mass_j, 
 }
 
 // Data validation
+// see: https://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/
+bool almost_equal_ulps(real a, real b, int max_ulps_diff)
+{
+  const representation_type<real>::type a_repr(a);
+  const representation_type<real>::type b_repr(b);
+
+  // Different signs means they do not match.
+  if (a_repr.negative() != b_repr.negative()) {
+    // Check for equality to make sure +0==-0
+    if (a == b) // NOLINT(clang-diagnostic-float-equal)
+      return true;
+    return false;
+  }
+
+  // Find the difference in ULPs.
+  return std::abs(a_repr.i - b_repr.i) <= max_ulps_diff;
+}
+
+bool almost_equal_ulps(const triple& a, const triple& b, int max_ulps_diff)
+{
+  return almost_equal_ulps(a[0], b[0], max_ulps_diff) && almost_equal_ulps(a[1], b[1], max_ulps_diff) &&
+         almost_equal_ulps(a[2], b[2], max_ulps_diff);
+}
+
 #if defined(_DEBUG)
 void debug_validate_finite(const triple& v)
 {

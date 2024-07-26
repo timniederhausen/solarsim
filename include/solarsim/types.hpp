@@ -22,12 +22,57 @@
 #endif
 
 #include <string>
+#include <cstring>
 
 SOLARSIM_NS_BEGIN
 
 // Floating point values - can switch between 32bits (float) and 64bits (double)
 // Default to double as our test data needs this precision
 using real = double;
+
+// see https://randomascii.wordpress.com/2012/01/11/tricks-with-the-floating-point-format/
+template <typename Real>
+struct representation_type;
+
+template <>
+struct representation_type<float>
+{
+  struct type
+  {
+    type(float num = 0.0f)
+    {
+      // The easiest & cleanest way w/o violating strict aliasing etc.
+      std::memcpy(&i, &num, sizeof(i));
+    }
+
+    // Portable extraction of components.
+    bool negative() const { return (i >> 31) != 0; }
+    int32_t mantissa() const { return i & ((1 << 23) - 1); }
+    int32_t exponent() const { return (i >> 23) & 0xFF; }
+
+    int32_t i;
+  };
+};
+
+template <>
+struct representation_type<double>
+{
+  struct type
+  {
+    type(double num = 0.0)
+    {
+      // The easiest & cleanest way w/o violating strict aliasing etc.
+      std::memcpy(&i, &num, sizeof(i));
+    }
+
+    // Portable extraction of components.
+    bool negative() const { return (i >> 63) != 0; }
+    int64_t mantissa() const { return i & ((1ll << 52) - 1); }
+    int64_t exponent() const { return (i >> 52) & 0x7FF; }
+
+    int64_t i;
+  };
+};
 
 // TODO: get these from a math library (w. proper alignment + SIMD support)
 // We need one that supports double precision though (so DirectXMath etc. are out for now)
