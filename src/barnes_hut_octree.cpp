@@ -62,6 +62,42 @@ void barnes_hut_octree_node::insert_body(const triple& body_position, real body_
   total_mass += body_mass;
 }
 
+void barnes_hut_octree_node::merge_from(barnes_hut_octree_node&& other)
+{
+  assert(almost_equal_ulps(other.position, position));
+  assert(almost_equal_ulps(other.length, length));
+
+  if (!is_leaf()) {
+    // Simple case: We're both branches - just merge our children
+    if (!other.is_leaf()) {
+      real new_total_mass = 0;
+      for (int i = 0; i < 8; ++i) {
+        children[i]->merge_from(std::move(*other.children[i]));
+        new_total_mass += children[i]->total_mass;
+      }
+      total_mass = new_total_mass;
+      return;
+    }
+
+    // Still the easiest path - just get the correct child and insert there.
+    insert_body(other.contained_body_position, other.contained_body_mass);
+    return;
+  }
+
+  if (other.is_leaf()) {
+    insert_body(other.contained_body_position, other.contained_body_mass);
+    return;
+  }
+
+  children = std::move(other.children);
+
+  // We had a body in the node we just subdivided? place that first!
+  get_child_for_position(contained_body_position).insert_body(contained_body_position, contained_body_mass);
+  has_contained_body = false;
+
+  total_mass += other.total_mass;
+}
+
 template <typename F>
 void barnes_hut_octree_node::recursively_apply_node_gravity(const triple& body_position, real softening,
                                                             F&& apply_gravity) const
@@ -110,7 +146,7 @@ void barnes_hut_octree_node::finalize()
 
 void barnes_hut_octree_node::subdivide_node()
 {
-  assert(is_leaf());          // can't divided a non-leaf
+  assert(is_leaf());          // can't divide a non-leaf
   assert(has_contained_body); // why else would subdivide?
 
   // This order is special
@@ -140,21 +176,6 @@ void barnes_hut_octree_node::subdivide_node()
 
 namespace {
 
-axis_aligned_bounding_box build_bounding_box(std::span<const triple> positions)
-{
-  axis_aligned_bounding_box aabb = axis_aligned_bounding_box::infinity();
-  for (const auto& position : positions) {
-    aabb.min[0] = std::min(aabb.min[0], position[0]);
-    aabb.min[1] = std::min(aabb.min[1], position[1]);
-    aabb.min[2] = std::min(aabb.min[2], position[2]);
-
-    aabb.max[0] = std::max(aabb.max[0], position[0]);
-    aabb.max[1] = std::max(aabb.max[1], position[1]);
-    aabb.max[2] = std::max(aabb.max[2], position[2]);
-  }
-  return aabb;
-}
-
 barnes_hut_octree_node setup_root_node_with_bounds(const axis_aligned_bounding_box& aabb)
 {
   debug_validate_finite(aabb.min);
@@ -172,15 +193,58 @@ barnes_hut_octree_node setup_root_node_with_bounds(const axis_aligned_bounding_b
 
 } // namespace
 
-barnes_hut_octree::barnes_hut_octree(std::span<const triple> body_positions, std::span<const real> body_masses)
-  : bounds_(build_bounding_box(body_positions))
-  , root_(setup_root_node_with_bounds(bounds_))
+axis_aligned_bounding_box build_bounding_box(std::span<const triple> positions)
+{
+  axis_aligned_bounding_box aabb = axis_aligned_bounding_box::infinity();
+  for (const auto& position : positions) {
+    aabb.min[0] = std::min(aabb.min[0], position[0]);
+    aabb.min[1] = std::min(aabb.min[1], position[1]);
+    aabb.min[2] = std::min(aabb.min[2], position[2]);
+
+    aabb.max[0] = std::max(aabb.max[0], position[0]);
+    aabb.max[1] = std::max(aabb.max[1], position[1]);
+    aabb.max[2] = std::max(aabb.max[2], position[2]);
+  }
+  return aabb;
+}
+
+partial_barnes_hut_octree::partial_barnes_hut_octree(const axis_aligned_bounding_box& bounds,
+                                                     std::span<const triple> body_positions,
+                                                     std::span<const real> body_masses)
+  : root_(setup_root_node_with_bounds(bounds))
 {
   assert(body_positions.size() == body_masses.size());
   for (std::size_t i = 0, n = body_positions.size(); i < n; ++i)
     root_.insert_body(body_positions[i], body_masses[i]);
+}
+
+partial_barnes_hut_octree::partial_barnes_hut_octree(const axis_aligned_bounding_box& bounds)
+  : root_(setup_root_node_with_bounds(bounds))
+{
+  // real setup happens in child classes
+}
+
+barnes_hut_octree::barnes_hut_octree(const axis_aligned_bounding_box& bounds, std::span<const triple> body_positions,
+                                     std::span<const real> body_masses)
+  : partial_barnes_hut_octree(bounds, body_positions, body_masses)
+{
+  root_.finalize();
+}
+
+barnes_hut_octree::barnes_hut_octree(const axis_aligned_bounding_box& bounds,
+                                     std::span<barnes_hut_octree> partial_trees)
+  : partial_barnes_hut_octree(bounds)
+{
+  // Destructively merge all other trees into this one.
+  for (auto& tree : partial_trees)
+    root_.merge_from(std::move(tree.root_));
 
   root_.finalize();
+}
+
+barnes_hut_octree::barnes_hut_octree(std::span<const triple> body_positions, std::span<const real> body_masses)
+  : barnes_hut_octree(build_bounding_box(body_positions), body_positions, body_masses)
+{
 }
 
 void barnes_hut_octree::apply_forces_to(const triple& body_position, real softening, triple& acceleration) const

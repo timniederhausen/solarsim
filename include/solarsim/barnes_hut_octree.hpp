@@ -44,6 +44,8 @@ struct barnes_hut_octree_node
   barnes_hut_octree_node& get_child_for_position(const triple& pos) const;
   void insert_body(const triple& body_position, real body_mass);
 
+  void merge_from(barnes_hut_octree_node&& other);
+
   template <typename F>
   void recursively_apply_node_gravity(const triple& body_position, real softening, F&& apply_gravity) const;
 
@@ -67,17 +69,39 @@ private:
   real contained_body_mass       = 0.0;
 };
 
-class barnes_hut_octree
+axis_aligned_bounding_box build_bounding_box(std::span<const triple> positions);
+
+class partial_barnes_hut_octree
+{
+public:
+  partial_barnes_hut_octree() = default;
+  partial_barnes_hut_octree(const axis_aligned_bounding_box& bounds, std::span<const triple> body_positions,
+                            std::span<const real> body_masses);
+
+protected:
+  partial_barnes_hut_octree(const axis_aligned_bounding_box& bounds);
+
+  barnes_hut_octree_node root_ = {};
+};
+
+class barnes_hut_octree : public partial_barnes_hut_octree
 {
 public:
   barnes_hut_octree() = default;
+  barnes_hut_octree(const axis_aligned_bounding_box& bounds, std::span<const triple> body_positions,
+                    std::span<const real> body_masses);
+
+  /**
+   * Create a new octree from a sequence of partial trees with the same bounds.
+   * @param bounds Bounding box of this tree and all partial trees.
+   * @param partial_trees Sequence of partial trees to merge.
+   */
+  barnes_hut_octree(const axis_aligned_bounding_box& bounds, std::span<barnes_hut_octree> partial_trees);
+
+  // simple interface for single-threaded usage
   barnes_hut_octree(std::span<const triple> body_positions, std::span<const real> body_masses);
 
   void apply_forces_to(const triple& body_position, real softening, triple& acceleration) const;
-
-private:
-  axis_aligned_bounding_box bounds_ = {};
-  barnes_hut_octree_node root_      = {};
 };
 
 SOLARSIM_NS_END
