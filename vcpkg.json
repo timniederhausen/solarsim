@@ -12,6 +12,10 @@
       "version>=": "1.83.0"
     },
     {
+      "name": "boost-math",
+      "version>=": "1.83.0"
+    },
+    {
       "name": "fmt",
       "version>=": "10.1.0"
     },
