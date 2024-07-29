@@ -48,7 +48,7 @@ bool parse_threads(const char* flagname, const std::string& value);
 DEFINE_double(time_step, 60 * 60, "Time between simulation steps (in s)");
 DEFINE_double(duration, (60 * 60) * 15, "Total duration of the simulation (in s)");
 DEFINE_string(dataset, "dataset/scenario1_state_vectors.csv", "Path to the input state vectors");
-DEFINE_string(threads, "2,4,8,16", "Number of threads to test");
+DEFINE_string(threads, "1,2,4,8,16", "Number of threads to test");
 DEFINE_validator(threads, &parse_threads);
 static std::vector<int> FLAGS_threads_v; // FLAGS_threads is just a string!
 
