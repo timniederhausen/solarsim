@@ -40,13 +40,14 @@ static void BM_BH_MT_STDSenders(benchmark::State& state)
 {
   using namespace solarsim::impl_std;
 
-  const solarsim::real duration = FLAGS_duration * (S == Scaling::Weak ? state.range(0) : 1.0);
-  auto data                     = solarsim::get_problem();
+  const real duration =
+      S == Scaling::Weak ? scale_barnes_hut_duration(FLAGS_duration, state.range(0)) : FLAGS_duration;
 
   // Create a thread pool and get a scheduler from it
   exec::static_thread_pool pool(state.range(0));
   ex::scheduler auto sched = pool.get_scheduler();
 
+  auto data = solarsim::get_problem();
   for (auto _ : state) {
     for (solarsim::real elapsed = FLAGS_time_step; elapsed < duration; elapsed += FLAGS_time_step) {
       // Very basic way of chaining these algorithms together to end up with:

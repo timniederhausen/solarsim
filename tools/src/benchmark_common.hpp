@@ -25,6 +25,9 @@
 
 #include <gflags/gflags.h>
 #include <benchmark/benchmark.h>
+#include <boost/math/special_functions/lambert_w.hpp>
+
+#include <cmath>
 
 SOLARSIM_NS_BEGIN
 
@@ -105,6 +108,22 @@ inline void register_solarsim_benchmark(const std::string& name, benchmark_funct
   const auto registration = benchmark::RegisterBenchmark(name, function)->UseRealTime()->MeasureProcessCPUTime();
   for (auto num_threads : FLAGS_threads_v)
     registration->Arg(num_threads);
+}
+
+inline real scale_barnes_hut_duration(real duration, std::int64_t threads)
+{
+  if (threads > 1) {
+    // For our weak scaling test we require equal work for each thread.
+    // Assuming a uniform distribution of work, and a time complexity of:
+    //  O(n * log(n))
+    // we require `n` to be as follows for a given number of threads:
+    //  (n * log(n)) / threads == (n_0 * log(n_0))
+    //  n = n_0 * threads log(n_0) / W(n_0 * threads log(n_0))
+    const real threads_r = static_cast<real>(threads);
+    const real log_duration = std::log(duration);
+    duration = duration * threads_r * log_duration / boost::math::lambert_w0(duration * threads_r * log_duration);
+  }
+  return duration;
 }
 
 SOLARSIM_NS_END

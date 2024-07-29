@@ -49,12 +49,13 @@ static void BM_BH_MT_HPXSenders(benchmark::State& state)
 {
   using namespace solarsim::impl_hpx;
 
-  const real duration = FLAGS_duration * (S == Scaling::Weak ? state.range(0) : 1.0);
-  auto data           = get_problem();
+  const real duration =
+      S == Scaling::Weak ? scale_barnes_hut_duration(FLAGS_duration, state.range(0)) : FLAGS_duration;
 
   auto sched = hpx::parallel::execution::with_processing_units_count(
       hpx::execution::experimental::thread_pool_scheduler{}, state.range(0));
 
+  auto data = get_problem();
   auto impl = [&]() {
     for (real elapsed = FLAGS_time_step; elapsed < duration; elapsed += FLAGS_time_step) {
       // Very basic way of chaining these algorithms together to end up with:
@@ -80,13 +81,14 @@ static void BM_BH_MT_HPXFutures(benchmark::State& state)
 {
   using namespace solarsim::impl_hpx;
 
-  const real duration = FLAGS_duration * (S == Scaling::Weak ? state.range(0) : 1.0);
-  auto data           = get_problem();
+  const real duration =
+      S == Scaling::Weak ? scale_barnes_hut_duration(FLAGS_duration, state.range(0)) : FLAGS_duration;
 
   auto exec = hpx::parallel::execution::with_processing_units_count(
       hpx::execution::experimental::scheduler_executor<hpx::execution::experimental::thread_pool_scheduler>{},
       state.range(0));
 
+  auto data = get_problem();
   auto impl = [&]() {
     auto view = simulation_state_view(data);
     for (real elapsed = FLAGS_time_step; elapsed < duration; elapsed += FLAGS_time_step) {
