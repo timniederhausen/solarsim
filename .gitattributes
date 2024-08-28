@@ -10,7 +10,11 @@
 *.cmake text
 *.gn text
 *.gni text
+*.tex text
+*.sty text
+*.md text
 
 *.sln text eol=crlf
 
+*.fodt text eol=lf
 *.sh text eol=lf
