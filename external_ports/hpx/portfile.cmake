@@ -6,8 +6,8 @@ string(COMPARE EQUAL "${VCPKG_LIBRARY_LINKAGE}" "static" HPX_WITH_STATIC_LINKING
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO STEllAR-GROUP/hpx
-    REF "v${VERSION}"
-    SHA512 e1cc9fa72cba4e66b5d6eff2487e93d5d553c32e6eebcfe9131bf69c5b595ab72295ff0986c81d5dc6a7caa8303d6709df91333f64efe59ee256d99a8c289dc5
+    REF "e43a4ec0a218640b267e357ea2f0c04f2b24d84e"
+    SHA512 335ab1311030520e7e2b51543b1c2f5b4fabc27deb27dd9b990fa9f4f6163f207e9408ba692ac928ac2e9942b7a36af73d47cef9afeccfa8b557d13d07da23c7
     HEAD_REF master
     PATCHES
         fix-find-apex-anywhere.patch
@@ -70,6 +70,9 @@ vcpkg_cmake_configure(
         -DHPX_WITH_MAX_CPU_COUNT=256
         # We are usually starved, especially if actually running in other runtimes (e.g. TBB, stdexec)
         -DHPX_THREAD_BACKOFF_ON_IDLE=ON
+        # Use new stdexec impl.
+        -DHPX_WITH_CXX_STANDARD=20
+        -DHPX_WITH_STDEXEC=ON
         -DVCPKG_HOST_TRIPLET=${_HOST_TRIPLET}
         # Have this last so it overrides the previous ...=ON
         # HPX uses FetchContent for some optional features (APEX, ...)
