@@ -40,9 +40,15 @@ namespace impl_hpx {
 
 // TODO: These need to be combined to reduce boilerplate code!
 
+#if defined(HPX_HAVE_STDEXEC)
+#  define CONSTEXPR_FOR_HPX_SR
+#else
+#  define CONSTEXPR_FOR_HPX_SR constexpr
+#endif
+
 inline constexpr struct async_tick_naive_t
 {
-  constexpr auto operator()() const
+  CONSTEXPR_FOR_HPX_SR auto operator()() const
   {
     return ex::then([](any_simulation_state auto&& state) {
       hpx::scoped_annotation annotation("async_tick_naive");
@@ -53,7 +59,7 @@ inline constexpr struct async_tick_naive_t
   }
 
   template <sender Sender>
-  constexpr auto operator()(Sender&& sender) const
+  CONSTEXPR_FOR_HPX_SR auto operator()(Sender&& sender) const
   {
     return ex::then(std::forward<Sender>(sender), [](any_simulation_state auto&& state) {
       hpx::scoped_annotation annotation("async_tick_naive");
@@ -66,7 +72,7 @@ inline constexpr struct async_tick_naive_t
 
 inline constexpr struct async_tick_barnes_hut_t
 {
-  constexpr auto operator()(auto sch) const
+  CONSTEXPR_FOR_HPX_SR auto operator()(auto sch) const
   {
     return ex::let_value([sch](any_simulation_state auto&& state) {
       hpx::scoped_annotation annotation("async_tick_barnes_hut");
@@ -88,7 +94,7 @@ inline constexpr struct async_tick_barnes_hut_t
   }
 
   template <sender Sender>
-  constexpr auto operator()(Sender&& sender, auto sch, const std::size_t& num_bodies) const
+  CONSTEXPR_FOR_HPX_SR auto operator()(Sender&& sender, auto sch, const std::size_t& num_bodies) const
   {
     return ex::let_value(std::forward<Sender>(sender), [sch](any_simulation_state auto&& state) {
       hpx::scoped_annotation annotation("async_tick_barnes_hut");
@@ -112,7 +118,7 @@ inline constexpr struct async_tick_barnes_hut_t
 
 inline constexpr struct async_tick_simulation_phase1_t
 {
-  constexpr auto operator()(const std::size_t& num_bodies, real dT) const
+  CONSTEXPR_FOR_HPX_SR auto operator()(const std::size_t& num_bodies, real dT) const
   {
     return ex::bulk(num_bodies, [=](std::size_t i, any_simulation_state auto& state) {
       hpx::scoped_annotation annotation("async_tick_simulation_phase1");
@@ -126,7 +132,7 @@ inline constexpr struct async_tick_simulation_phase1_t
   }
 
   template <sender Sender>
-  constexpr auto operator()(Sender&& sender, const std::size_t& num_bodies, real dT) const
+  CONSTEXPR_FOR_HPX_SR auto operator()(Sender&& sender, const std::size_t& num_bodies, real dT) const
   {
     return ex::bulk(std::forward<Sender>(sender), num_bodies, [=](std::size_t i, any_simulation_state auto& state) {
       hpx::scoped_annotation annotation("async_tick_simulation_phase1");
@@ -142,7 +148,7 @@ inline constexpr struct async_tick_simulation_phase1_t
 
 inline constexpr struct async_tick_simulation_phase2_t
 {
-  constexpr auto operator()(const std::size_t& num_bodies, real dT) const
+  CONSTEXPR_FOR_HPX_SR auto operator()(const std::size_t& num_bodies, real dT) const
   {
     return ex::bulk(num_bodies, [=](std::size_t i, any_simulation_state auto& state) {
       hpx::scoped_annotation annotation("async_tick_simulation_phase2");
@@ -155,7 +161,7 @@ inline constexpr struct async_tick_simulation_phase2_t
   }
 
   template <sender Sender>
-  constexpr auto operator()(Sender&& sender, const std::size_t& num_bodies, real dT) const
+  CONSTEXPR_FOR_HPX_SR auto operator()(Sender&& sender, const std::size_t& num_bodies, real dT) const
   {
     return ex::bulk(std::forward<Sender>(sender), num_bodies, [=](std::size_t i, any_simulation_state auto& state) {
       hpx::scoped_annotation annotation("async_tick_simulation_phase2");
@@ -169,6 +175,8 @@ inline constexpr struct async_tick_simulation_phase2_t
 } async_tick_simulation_phase2{};
 
 } // namespace impl_hpx
+
+#undef CONSTEXPR_FOR_HPX_SR
 
 SOLARSIM_NS_END
 
