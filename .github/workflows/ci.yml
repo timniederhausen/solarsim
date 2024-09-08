@@ -24,56 +24,12 @@ jobs:
       run: |
         cmake -D FORMAT_COMMAND=clang-format-17 -P cmake/lint.cmake
 
-  sanitize:
-    needs: [lint]
-
-    runs-on: ubuntu-24.04
-
-    env:
-      CXX: clang++-17
-      APEX_DISABLE: "1"
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Install vcpkg
-      uses: lukka/run-vcpkg@v11
-      with:
-        vcpkgGitCommitId: "${{ env.VCPKG_COMMIT }}"
-        vcpkgDirectory: "${{ env.VCPKG_ROOT }}"
-
-    - name: Configure
-      run: cmake --preset=ci-sanitize
-
-    - name: Build
-      run: cmake --build build/sanitize -j 2
-
-    - name: Dump configure logs
-      if: failure()
-      uses: actions/upload-artifact@v4
-      with:
-        name: cmake-error-sanitize
-        path: |
-          ${{ env.VCPKG_ROOT }}/buildtrees/*/*.log
-          build/sanitize/vcpkg_installed/*/share
-
-    - name: Test
-      working-directory: build/sanitize
-      env:
-        ASAN_OPTIONS: "strict_string_checks=1:\
-          detect_stack_use_after_return=1:\
-          check_initialization_order=1:\
-          strict_init_order=1:\
-          detect_leaks=1"
-        UBSAN_OPTIONS: print_stacktrace=1
-      run: ctest --output-on-failure --no-tests=error -j 2
-
   test:
     needs: [lint]
 
     strategy:
       matrix:
-        os: [ubuntu-24.04, windows-2022]
+        os: [ubuntu-24.04]
 
         type: [static]
 

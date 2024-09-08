@@ -26,10 +26,6 @@
       "features": ["zlib"]
     },
     {
-      "name": "stdexec",
-      "version>=": "2023-09-06"
-    },
-    {
       "name": "benchmark",
       "version>=": "1.8.3"
     },
