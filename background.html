@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<head>
+    <style>
+        body {
+            margin: 0;
+        }
+    </style>
+<link href="lib/css/app.css" rel="stylesheet"><link href="lib/css/ttf.css" rel="stylesheet"></head>
+<body>
+<div class="unis-blue-background">
+    <div class="unis-section-title"></div>
+</div>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelector('.unis-section-title').innerHTML = decodeURIComponent(window.location.search.substring(1));
+    });
+</script>
+<script type="text/javascript" src="lib/js/app.js"></script></body>
